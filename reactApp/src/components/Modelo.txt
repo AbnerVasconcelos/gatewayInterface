@@ -1,0 +1,406 @@
+import React, { useRef, useEffect, useState, Suspense } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { useGLTF, OrbitControls, Text } from '@react-three/drei';
+import { Color } from 'three';
+
+const Model = ({ path, modelParams }) => {
+  const { scene, materials, cameras } = useGLTF(path);
+  const { gl, set } = useThree();
+  const fillLevelRef = useRef(modelParams.initialFillLevel);
+
+  // Estado com dados randômicos para os materiais
+  const [labels, setLabels] = useState({
+    funilA: { tag: 'A', weight: Math.random() * 100 },
+    funilB: { tag: 'B', weight: Math.random() * 100 },
+    funilC: { tag: 'C', weight: Math.random() * 100 },
+    funilD: { tag: 'D', weight: Math.random() * 100 },
+    balacaA: Math.random() * 100,
+    misturador: Math.random() * 100,
+  });
+
+  // Atualiza os valores a cada 1 segundo
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLabels({
+        funilA: { tag: 'A', weight: Math.random() * 100 },
+        funilB: { tag: 'B', weight: Math.random() * 100 },
+        funilC: { tag: 'C', weight: Math.random() * 100 },
+        funilD: { tag: 'D', weight: Math.random() * 100 },
+        balacaA: Math.random() * 100,
+        misturador: Math.random() * 100,
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    console.log('Materiais carregados:', materials);
+
+    if (cameras && cameras.length > 0) {
+      const gltfCamera = cameras[0];
+      if (modelParams.camera) {
+        const { position, rotation, fov, near, far } = modelParams.camera;
+        if (position) gltfCamera.position.set(...position);
+        if (rotation) gltfCamera.rotation.set(...rotation);
+        if (fov) gltfCamera.fov = fov;
+        if (near) gltfCamera.near = near;
+        if (far) gltfCamera.far = far;
+        gltfCamera.updateProjectionMatrix();
+      }
+      set({ camera: gltfCamera });
+      gl.setDefaultCamera(gltfCamera);
+    }
+
+    if (materials.FunilA) {
+      materials.FunilA.onBeforeCompile = (shader) => {
+        shader.uniforms.fillLevel = { value: modelParams.initialFillLevel };
+        shader.uniforms.fillColor = { value: new Color(modelParams.fillColor) };
+        shader.uniforms.mixFactor = { value: modelParams.mixFactor };
+
+        shader.vertexShader = `
+          varying vec3 vWorldPosition;
+          ${shader.vertexShader}
+        `.replace(
+          '#include <begin_vertex>',
+          `#include <begin_vertex>
+           vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+           vWorldPosition = worldPosition.xyz;`
+        );
+
+        shader.fragmentShader = `
+          uniform float fillLevel;
+          uniform vec3 fillColor;
+          uniform float mixFactor;
+          varying vec3 vWorldPosition;
+          ${shader.fragmentShader}
+        `.replace(
+          '#include <dithering_fragment>',
+          `#include <dithering_fragment>
+           if(vWorldPosition.y < fillLevel) {
+             gl_FragColor.rgb = mix(gl_FragColor.rgb, fillColor, mixFactor);
+           }`
+        );
+
+        materials.FunilA.userData.shader = shader;
+      };
+      materials.FunilA.needsUpdate = true;
+    }
+  }, [materials, cameras, gl, set, modelParams]);
+
+  useFrame((state, delta) => {
+    if (materials.FunilA && materials.FunilA.userData.shader) {
+      fillLevelRef.current = Math.min(
+        fillLevelRef.current + delta * modelParams.fillSpeed,
+        modelParams.maxFillLevel
+      );
+      materials.FunilA.userData.shader.uniforms.fillLevel.value = fillLevelRef.current;
+    }
+  });
+
+  // Configurações de posição, rotação e escala do modelo
+  scene.position.set(...modelParams.position);
+  scene.rotation.set(...modelParams.rotation);
+  scene.scale.set(...modelParams.scale);
+
+  // Define posições para os textos – ajuste conforme necessário
+  const labelPositions = {
+    funilA: [-1, 4.2, 2],
+    funilB: [1.2, 4.2, 2],
+    funilC: [-4, 4.2, 2],
+    funilD: [4.3, 4.2, 2],
+    balacaA: [2.9, -1.1, -1.5],
+    misturador: [2.9, -3, -2],
+  };
+
+  return (
+    <group>
+      <primitive object={scene} />
+      {/* Materiais Funil: rótulo (branco) e número (verde) */}
+      {materials.FunilA && (
+        <group>
+          <Text
+            color="white"
+            fontSize={0.5}
+            fontWeight="bold"
+            position={labelPositions.funilA}
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.02}
+            outlineColor="rgba(0,0,0,0.8)"
+            material-toneMapped={false}
+            rotation={[0.5, 0, 0]}
+          >
+            {labels.funilA.tag}
+          </Text>
+          <Text
+            color="green"
+            fontSize={0.5}
+            fontWeight="bold"
+            position={[
+              labelPositions.funilA[0],
+              labelPositions.funilA[1] - 0.6,
+              labelPositions.funilA[2]
+            ]}
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.02}
+            outlineColor="rgba(0,0,0,0.8)"
+            material-toneMapped={false}
+            rotation={[0.5, 0, 0]}
+          >
+            {`${labels.funilA.weight.toFixed(2)} kg`}
+          </Text>
+        </group>
+      )}
+      {materials.FunilB && (
+        <group>
+          <Text
+            color="white"
+            fontSize={0.5}
+            fontWeight="bold"
+            position={labelPositions.funilB}
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.02}
+            outlineColor="rgba(0,0,0,0.8)"
+            material-toneMapped={false}
+            rotation={[0.5, 0, 0]}
+          >
+            {labels.funilB.tag}
+          </Text>
+          <Text
+            color="green"
+            fontSize={0.5}
+            fontWeight="bold"
+            position={[
+              labelPositions.funilB[0],
+              labelPositions.funilB[1] - 0.6,
+              labelPositions.funilB[2]
+            ]}
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.02}
+            outlineColor="rgba(0,0,0,0.8)"
+            material-toneMapped={false}
+            rotation={[0.5, 0, 0]}
+          >
+            {`${labels.funilB.weight.toFixed(2)} kg`}
+          </Text>
+        </group>
+      )}
+      {materials.FunilC && (
+        <group>
+          <Text
+            color="white"
+            fontSize={0.5}
+            fontWeight="bold"
+            position={labelPositions.funilC}
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.02}
+            outlineColor="rgba(0,0,0,0.8)"
+            material-toneMapped={false}
+            rotation={[0.5, 0, 0]}
+          >
+            {labels.funilC.tag}
+          </Text>
+          <Text
+            color="green"
+            fontSize={0.5}
+            fontWeight="bold"
+            position={[
+              labelPositions.funilC[0],
+              labelPositions.funilC[1] - 0.6,
+              labelPositions.funilC[2]
+            ]}
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.02}
+            outlineColor="rgba(0,0,0,0.8)"
+            material-toneMapped={false}
+            rotation={[0.5, 0, 0]}
+          >
+            {`${labels.funilC.weight.toFixed(2)} kg`}
+          </Text>
+        </group>
+      )}
+      {materials.FunilD && (
+        <group>
+          <Text
+            color="white"
+            fontSize={0.5}
+            fontWeight="bold"
+            position={labelPositions.funilD}
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.02}
+            outlineColor="rgba(0,0,0,0.8)"
+            material-toneMapped={false}
+            rotation={[0.5, 0, 0]}
+          >
+            {labels.funilD.tag}
+          </Text>
+          <Text
+            color="green"
+            fontSize={0.5}
+            fontWeight="bold"
+            position={[
+              labelPositions.funilD[0],
+              labelPositions.funilD[1] - 0.6,
+              labelPositions.funilD[2]
+            ]}
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.02}
+            outlineColor="rgba(0,0,0,0.8)"
+            material-toneMapped={false}
+            rotation={[0.5, 0, 0]}
+          >
+            {`${labels.funilD.weight.toFixed(2)} kg`}
+          </Text>
+        </group>
+      )}
+
+      {/* Para BalacaA e Misturador, agora também separamos rótulo e valor */}
+      {materials.BalacaA && (
+        <group>
+          <Text
+            color="white"
+            fontSize={0.5}
+            fontWeight="bold"
+            position={labelPositions.balacaA}
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.02}
+            outlineColor="rgba(0,0,0,0.8)"
+            material-toneMapped={false}
+            rotation={[0.5, 0, 0]}
+          >
+            {"Batch"}
+          </Text>
+          <Text
+            color="green"
+            fontSize={0.5}
+            fontWeight="bold"
+            position={[
+              labelPositions.balacaA[0],
+              labelPositions.balacaA[1] - 0.6,
+              labelPositions.balacaA[2]
+            ]}
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.02}
+            outlineColor="rgba(0,0,0,0.8)"
+            material-toneMapped={false}
+            rotation={[0.5, 0, 0]}
+          >
+            {`${labels.balacaA.toFixed(2)} kg`}
+          </Text>
+        </group>
+      )}
+      {materials.Misturador && (
+        <group>
+          <Text
+            color="white"
+            fontSize={0.5}
+            fontWeight="bold"
+            position={labelPositions.misturador}
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.02}
+            outlineColor="rgba(0,0,0,0.8)"
+            material-toneMapped={false}
+            rotation={[0.5, 0, 0]}
+          >
+            {"Misturador"}
+          </Text>
+          <Text
+            color="green"
+            fontSize={0.5}
+            fontWeight="bold"
+            position={[
+              labelPositions.misturador[0],
+              labelPositions.misturador[1] - 0.6,
+              labelPositions.misturador[2]
+            ]}
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.02}
+            outlineColor="rgba(0,0,0,0.8)"
+            material-toneMapped={false}
+            rotation={[0.5, 0, 0]}
+          >
+            {`${labels.misturador.toFixed(2)} kg`}
+          </Text>
+        </group>
+      )}
+    </group>
+  );
+};
+
+const ModelViewer = ({ modelPath, modelParams }) => {
+  return (
+    <Canvas
+      camera={{
+        position: modelParams.camera.position,
+        fov: modelParams.camera.fov,
+        near: modelParams.camera.near,
+        far: modelParams.camera.far,
+      }}
+    >
+      <ambientLight intensity={modelParams.ambientLightIntensity} />
+      {modelParams.directionalLightPositions.map((pos, index) => (
+        <directionalLight
+          key={index}
+          position={pos}
+          intensity={modelParams.directionalLightIntensity}
+        />
+      ))}
+      <hemisphereLight
+        skyColor="white"
+        groundColor="gray"
+        intensity={modelParams.hemisphereLightIntensity}
+      />
+      <OrbitControls enableZoom={modelParams.enableZoom} />
+      <Model path={modelPath} modelParams={modelParams} />
+    </Canvas>
+  );
+};
+
+const ModelViewerWrapper = ({ modelPath }) => {
+  const modelParams = {
+    position: [0, -3.5, -2],
+    rotation: [0.49, 2.9, 0],
+    scale: [5, 5, 5],
+    initialFillLevel: 0,
+    fillSpeed: 0.1,
+    maxFillLevel: 100,
+    fillColor: 'blue',
+    mixFactor: 0.3,
+    ambientLightIntensity: 1.1,
+    directionalLightIntensity: 0.5,
+    directionalLightPositions: [
+      
+      [-2, -2, 2],
+      
+      [-2, 2, -2],
+    ],
+    hemisphereLightIntensity: 2,
+    camera: {
+      position: [0, -4, 10],
+      rotation: [0, -0.2, 0],
+      fov: 50,
+      near: 0.1,
+      far: 1500,
+    },
+    enableZoom: false,
+  };
+
+  return (
+    <Suspense fallback={<div>Carregando modelo 3D...</div>}>
+      <ModelViewer modelPath={modelPath} modelParams={modelParams} />
+    </Suspense>
+  );
+};
+
+export default ModelViewerWrapper;

@@ -1,0 +1,67 @@
+{
+  "name": "client",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/icons-material": "^5.16.7",
+    "@mui/joy": "^5.0.0-beta.48",
+    "@mui/material": "^5.14.1",
+    "@mui/system": "^6.4.11",
+    "@mui/x-charts": "^7.27.1",
+    "@mui/x-data-grid": "^5.17.13",
+    "@nivo/core": "^0.80.0",
+    "@nivo/line": "^0.80.0",
+    "@nivo/radar": "^0.83.0",
+    "@react-three/drei": "^9.111.2",
+    "@react-three/fiber": "^8.17.5",
+    "@reduxjs/toolkit": "^1.9.0",
+    "firebase": "^10.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-redux": "^8.0.5",
+    "react-router-dom": "^6.4.3",
+    "react-scripts": "5.0.1",
+    "react-simple-keyboard": "^3.8.22",
+    "react-world-flags": "^1.6.0",
+    "socket.io-client": "^4.7.1",
+    "three": "^0.167.1"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "preelectron-pack": "npm run build",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "build": {
+    "appId": "com.seuNome.seuApp",
+    "productName": "SeuProduto",
+    "directories": {
+      "output": "build"
+    },
+    "files": [
+      "node_modules/",
+      "electron.js"
+    ]
+  }
+}

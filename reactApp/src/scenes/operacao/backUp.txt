@@ -1,0 +1,238 @@
+import React, { useEffect, useState } from "react";
+import { Box, useTheme, useMediaQuery } from "@mui/material";
+import Legend from "components/Legend";
+import InfoCard from "components/Cards";
+import StatBox from "components/StatBox";
+import ButtonTrueFalse from "components/ButtonTrueFalse";
+import ModelViewerWrapper from "components/Modelo";
+import NumericInput from "components/NumericInput";
+import NumericInputVirgula from "components/NumericInputVirgula";
+import { socket } from "../../socket";
+import { Diversity3, Bolt } from "@mui/icons-material";
+import KeyboardWrapper from "components/keyboard";
+import Typography from "@mui/material/Typography";
+import CardConfig  from "components/CardConfig";
+
+
+
+const Dashboard = () => {
+  const theme = useTheme();
+  const isNonMediumScreens = useMediaQuery("(min-width: 1000px)");
+  const [messageReceived, setMessageReceived] = useState({});
+  const handleKeyboardSubmit = (data) => {
+    console.log("Dados recebidos do teclado:", data);
+    // Aqui você pode implementar sua lógica de envio via socket ou API
+  };
+
+  // Configuração do socket.io
+  useEffect(() => {
+    socket.on("read", (data) => {
+      try {
+        const parsedData = JSON.parse(data);
+        setMessageReceived(parsedData);
+        console.log("Dados recebidos e atualizados:", parsedData);
+      } catch (error) {
+        console.error("Erro ao processar dados do socket:", error);
+      }
+    });
+    return () => {
+      socket.off("read");
+    };
+  }, []);
+
+  return (
+    <Box m="0rem 0.5rem">
+      {/* GRID PRINCIPAL */}
+      <Box
+        mt="2px"
+        display="grid"
+        gridTemplateColumns="repeat(12, 1fr)"
+        gridAutoRows="151px"
+        gap="5px"
+        sx={{
+          "& > div": { gridColumn: isNonMediumScreens ? undefined : "span 12" },
+        }}
+      >
+        {/* COLUNA 1 */}
+        <Box
+          gridColumn="span 4"
+          gridRow="span 3"
+          backgroundColor={theme.palette.background.alt}
+          p="0.5rem"
+          borderRadius="0.55rem"
+        >
+          <Box display="grid" gridTemplateColumns="repeat(1, 1fr)" rowGap="0.5rem">
+            <Legend />
+            <InfoCard
+              title="Extrusora"
+              programmedValue={messageReceived?.hz?.alimFreqIhm || "N/A"}
+              actualValue={messageReceived?.hz?.alimFreqIhm || "N/A"}
+              unit="kg/h"
+            />
+            <InfoCard
+              title="Espessura"
+              programmedValue={messageReceived?.hz?.alimFreqIhm || "N/A"}
+              actualValue={messageReceived?.hz?.alimFreqIhm || "N/A"}
+              unit="μm"
+            />
+            <InfoCard
+              title="Grama/Metro"
+              programmedValue={messageReceived?.hz?.alimFreqIhm || "N/A"}
+              actualValue={messageReceived?.hz?.alimFreqIhm || "N/A"}
+              unit="g/m"
+            />
+            <InfoCard
+              title="Vel. Puxador"
+              programmedValue={messageReceived?.hz?.alimFreqIhm || "N/A"}
+              actualValue={messageReceived?.hz?.alimFreqIhm || "N/A"}
+              unit="m/min"
+            />
+            <InfoCard
+              title="Largura"
+              programmedValue={messageReceived?.hz?.alimFreqIhm || "N/A"}
+              actualValue={messageReceived?.hz?.alimFreqIhm || "N/A"}
+              unit="mm"
+            />
+          </Box>
+        </Box>
+
+        {/* COLUNA 2 – Modelo 3D */}
+        <Box
+          gridColumn="span 6"
+          gridRow="span 3"
+          backgroundColor={theme.palette.background.alt}
+          p="1rem"
+          borderRadius="0.55rem"
+        >
+          <ModelViewerWrapper 
+            modelPath="modelo.glb"
+            colorFunil="#00FF00"
+            maxValueFunil={100}
+            socketValueFunilA={1} // minimo = -1.5 , máximo= 2.9
+            socketValueFunilB={1}     // minimo = -1.6 , máximo= 2.6
+            socketValueFunilC={3}     // minimo = 1.9 , máximo= 6.2
+            socketValueFunilD={2}     // minimo = 0.7 , máximo= 5
+            colorBatch="#00FF00"
+            maxValueBalacaA={100}
+            socketValueBalacaA={-3.2}     // minimo = -4.8 , máximo= -3.2
+            colorMisturador="#00FF00"
+            maxValueMisturador={100}       // max =100 
+            socketValueMisturador={-5.2} // minimo = -9.1 , máximo= -4.8 
+           
+            socketFaltaMaterialA={false}
+            socketFaltaMaterialB={false}
+            socketFaltaMaterialC={false}
+            socketFaltaMaterialD={false}
+            socketReceitaA={1}
+            socketReceitaB={2}
+            socketReceitaC={3}
+            socketReceitaD={4}
+            socketTagA="A"
+            socketTagB="B"
+            socketTagC="C"
+            socketTagD="D"
+
+            socketSensorA={false}
+            socketSensorB={false}
+            socketSensorC={false}
+            socketSensorD={false}
+
+            socketVacuoA={false}
+            socketVacuoB={false}
+            socketVacuoC={false}
+            socketVacuoD={false}
+
+            socketReceitaBalancaA={5}
+            socketTagBalanca="Balança"
+            socketReceitaMisturador={6}
+            socketTagMisturador="Misturador"
+          />
+        </Box>
+
+        {/* STAT BOXES */}
+        <StatBox
+          title="Contatora"
+          value={messageReceived?.potencia?.Contatora || messageReceived?.potencia?.Contatora}
+          increase="RPM"
+          description="Últimas 24h"
+          icon={<Diversity3 sx={{ color: theme.palette.secondary[300], fontSize: "26px" }} />}
+          ligado={messageReceived?.potencia?.Contatora ?? false}
+        />
+        <StatBox
+          title="Puxador"
+          value={messageReceived?.hz?.alimFreqIhm || "N/A"}
+          increase="m/min"
+          description="Agora"
+          icon={<Bolt sx={{ color: theme.palette.secondary[300], fontSize: "26px" }} />}
+          ligado={messageReceived?.comandFeeder?.automaticoAlimentadorOne ?? false}
+        />
+        <StatBox
+          title="Dosador"
+          value={messageReceived?.comandFeeder?.automaticoAlimentadorOne ? "Ligado" : "Desligado"}
+          increase={messageReceived?.comandFeeder?.automaticoAlimentadorOne ? "Ligado" : "Desligado"}
+          description="Agora"
+          icon={<Bolt sx={{ color: theme.palette.secondary[300], fontSize: "26px" }} />}
+          ligado={messageReceived?.comandFeeder?.automaticoAlimentadorOne ?? false}
+        />
+
+        {/* COLUNA 3 – Inputs e Botões */}
+        <Box
+          gridColumn="span 6"
+          gridRow="span 3"
+          backgroundColor={theme.palette.background.alt}
+          p="1.5rem"
+          borderRadius="0.55rem"
+          sx={{ position: "relative" }}
+        >
+          <ButtonTrueFalse
+            tag="Puxador"
+            socketVariavel={false}
+            sx={{
+              position: "relative",
+              top: "10px",
+              left: "10px",
+              zIndex: 10,
+            }}
+          />
+          <NumericInputVirgula />
+          <Box
+            display="flex"
+            flexDirection="row"
+            justifyContent="space-between"
+            alignItems="center"
+            gap={2}
+            sx={{
+              width: "100%",
+              maxWidth: "800px",
+              margin: "0 auto",
+            }}
+          >
+               <KeyboardWrapper
+          title="Pressao"
+          onSubmit={handleKeyboardSubmit}
+          validation={{
+            maxLength: 6,
+            pattern: /^\d{1,4}(,\d{1,2})?$/,
+            errorMessage: "Formato: 9999 ou 9999,99"
+          }}
+          format="number"
+          socket={socket} // Passando a instância de socket existente
+          socketEvent="update_parameter" // Nome do evento para enviar
+        >
+          <NumericInput label="Pressão" value="75,5" unit="bar" />
+        </KeyboardWrapper>
+
+        
+          </Box>
+          <CardConfig
+              title="Extrusora"
+              programmedValue={messageReceived?.hz?.alimFreqIhm || "N/A"}
+              unit="kg/h"
+            />
+        </Box>
+      </Box>
+    </Box>
+  );
+};
+
+export default Dashboard;

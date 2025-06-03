@@ -1,0 +1,91 @@
+/* Estilo básico do teclado */
+.react-simple-keyboard {
+  display: inline-block;
+  font-family: 'Arial', sans-serif;
+  font-size: 16px; /* Reduzido para um tamanho compacto */
+  background-color: #f8f9fa; /* Fundo claro e neutro */
+  border: 1px solid #ccc; /* Borda cinza suave */
+  border-radius: 8px; /* Bordas arredondadas */
+  padding: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Sombra leve */
+  box-sizing: border-box;
+  width: 320px; /* Largura menor */
+  max-width: 100%; /* Garante responsividade */
+}
+
+/* Estilo para o campo numérico acima do teclado */
+.react-simple-keyboard-input {
+  background-color: #f0f0f0; /* Fundo cinza claro */
+  color: #333; /* Texto em cinza escuro */
+  font-size: 20px; /* Tamanho reduzido */
+  text-align: center; /* Centraliza o texto */
+  padding: 8px;
+  margin-bottom: 12px;
+  border: 1px solid #ccc; /* Borda suave */
+  border-radius: 5px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra interna */
+  user-select: none; /* Evita seleção de texto */
+}
+
+/* Estilo das teclas do teclado */
+.react-simple-keyboard .hg-button {
+  width: 50px; /* Reduzido */
+  height: 50px; /* Reduzido */
+  margin: 5px;
+  background-color: #ffffff; /* Fundo branco */
+  color: #000; /* Texto preto */
+  border: 1px solid #ddd; /* Borda clara */
+  border-radius: 6px; /* Bordas arredondadas */
+  font-size: 16px; /* Texto reduzido */
+  text-align: center;
+  line-height: 50px; /* Centraliza o texto verticalmente */
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+/* Efeito de hover nas teclas */
+.react-simple-keyboard .hg-button:hover {
+  background-color: #e9ecef; /* Fundo cinza claro no hover */
+}
+
+/* Estilo para teclas quando são pressionadas */
+.react-simple-keyboard .hg-button:active {
+  background-color: #ddd; /* Fundo mais escuro quando pressionado */
+  transform: scale(0.95); /* Leve redução no tamanho */
+}
+
+/* Estilo do botão de backspace */
+.react-simple-keyboard .hg-button.hg-button--backspace {
+  background-color: #f44336; /* Vermelho */
+  color: white;
+  font-size: 14px; /* Texto menor */
+  width: 100px; /* Botão largo, mas menor que antes */
+}
+
+.react-simple-keyboard .hg-button.hg-button--backspace:hover {
+  background-color: #e53935; /* Vermelho mais escuro no hover */
+}
+
+.react-simple-keyboard .hg-button.hg-button--backspace:active {
+  background-color: #d32f2f; /* Vermelho ainda mais escuro quando pressionado */
+}
+
+/* Responsividade - Ajuste para dispositivos menores */
+@media (max-width: 600px) {
+  .react-simple-keyboard {
+      font-size: 14px;
+      padding: 8px;
+      width: 100%; /* Ocupa 100% da largura disponível */
+  }
+
+  .react-simple-keyboard .hg-button {
+      width: 40px; /* Reduz largura das teclas */
+      height: 40px; /* Reduz altura das teclas */
+      font-size: 14px; /* Reduz tamanho do texto */
+  }
+
+  .react-simple-keyboard-input {
+      font-size: 16px; /* Reduz tamanho da fonte */
+      padding: 8px;
+  }
+}
