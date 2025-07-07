@@ -209,7 +209,7 @@ const Dashboard = () => {
             socketValueFunilA={normalizeNivelA(messageReceived?.registers?.threeJs?.nivelA)} // normalized from 0-20000 to -1.5-2.9
             socketValueFunilB={normalizeNivelB(messageReceived?.registers?.threeJs?.nivelB)} // normalized from 0-20000 to -1.6-2.6
             socketValueFunilC={normalizeNivelC(messageReceived?.registers?.threeJs?.nivelC)} // normalized from 0-20000 to 1.9-6.2
-            socketValueFunilD={4} // normalized from 0-20000 to 0.7-5.0
+            socketValueFunilD={normalizeNivelD(messageReceived?.registers?.threeJs?.nivelD)} // normalized from 0-20000 to 0.7-5.0
             colorBatch="#00FF00"
             maxValueBalacaA={100}
             socketValueBalacaA={normalizePesoBalanca(messageReceived?.registers?.threeJs?.pesoBalanca)} // normalized from 0-20000 to -4.8 to -3.2
@@ -217,14 +217,14 @@ const Dashboard = () => {
             maxValueMisturador={100}       // max =100 
             socketValueMisturador={normalizePesoMixer(messageReceived?.registers?.threeJs?.pesoMixer)} // normalized from 0-20000 to -9.1 to -4.8
            
-            socketFaltaMaterialA={messageReceived?.coils?.threeJs?.capacitivoA || false}
-            socketFaltaMaterialB={messageReceived?.coils?.threeJs?.capacitivoB || false}
-            socketFaltaMaterialC={messageReceived?.coils?.threeJs?.capacitivoC || false}
-            socketFaltaMaterialD={messageReceived?.coils?.threeJs?.capacitivoD || false}
-            socketReceitaA={messageReceived?.registers?.threeJs?.percentualA || 100}
-            socketReceitaB={messageReceived?.registers?.threeJs?.percentualA || 100}
-            socketReceitaC={messageReceived?.registers?.threeJs?.percentualA || 100}
-            socketReceitaD={messageReceived?.registers?.threeJs?.percentualA || 100}
+            socketFaltaMaterialA={messageReceived?.coils?.threeJs?.testeA || false}
+            socketFaltaMaterialB={messageReceived?.coils?.threeJs?.testeB || false}
+            socketFaltaMaterialC={messageReceived?.coils?.threeJs?.testeC || false}
+            socketFaltaMaterialD={messageReceived?.coils?.threeJs?.testeD || false}
+            socketReceitaA={messageReceived?.registers?.threeJs?.percentualA || "000" }
+            socketReceitaB={messageReceived?.registers?.threeJs?.percentualB || "000"}
+            socketReceitaC={messageReceived?.registers?.threeJs?.percentualC || "000"}
+            socketReceitaD={messageReceived?.registers?.threeJs?.percentualD || "000"}
             socketTagA="PP"
             socketTagB="PE"
             socketTagC="Aditivo"
@@ -240,9 +240,9 @@ const Dashboard = () => {
             socketVacuoC={messageReceived?.coils?.threeJs?.alimentandoC || false}
             socketVacuoD={messageReceived?.coils?.threeJs?.alimentandoD || false}
 
-            socketReceitaBalancaA = {messageReceived?.registers?.threeJs?.pesoBalanca || 0}
+            socketReceitaBalancaA = {(messageReceived?.registers?.threeJs?.pesoBalanca ?? 0) / 1000}
             socketTagBalanca="Balança"
-            socketReceitaMisturador = {messageReceived?.registers?.threeJs?.pesoMixer || 0}
+            socketReceitaMisturador = {(messageReceived?.registers?.threeJs?.pesoMixer ?? 0) / 1000}
             socketTagMisturador="Misturador"
           />
         </Box>
@@ -266,7 +266,7 @@ const Dashboard = () => {
               textFalseOnOff={"Desligado"}
               textTrueControl={"Controle de Produção"}
               textFalseControl={"Controle de Produção"}
-              value={messageReceived?.registers?.Extrusora?.extrusoraFeedBackSpeed || 1745}
+              value={messageReceived?.registers?.Extrusora?.extrusoraFeedBackSpeed || 123}
               minValue={0}
               maxValue={1745}
               unit="Rpm"
