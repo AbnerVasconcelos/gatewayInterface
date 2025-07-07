@@ -3,7 +3,15 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useGLTF, OrbitControls, Text } from '@react-three/drei';
 import { Color } from 'three';
 import { useTheme } from '@mui/material';
-// Função auxiliar para calcular o nível normalizado
+
+// Helper function to safely convert values to numbers
+const ensureNumber = (value, defaultValue = 0) => {
+  if (value === null || value === undefined) return defaultValue;
+  const num = Number(value);
+  return isNaN(num) ? defaultValue : num;
+};
+
+// Function to calculate normalized fill level
 const getNormalizedFillLevel = (socketValue, maxValue, initialFillLevel, maxFillLevel) => {
   if (typeof socketValue === 'number' && typeof maxValue === 'number' && maxValue > 0) {
     return (socketValue / maxValue) * maxFillLevel;
@@ -12,7 +20,6 @@ const getNormalizedFillLevel = (socketValue, maxValue, initialFillLevel, maxFill
 };
 
 const Model = ({
-  
   path,
   modelParams,
   maxValueFunil,
@@ -54,27 +61,27 @@ const Model = ({
 }) => {
   const { scene, materials, cameras } = useGLTF(path);
   const { gl, set } = useThree();
-  const theme =useTheme()
+  const theme = useTheme();
 
-  // Estado para os rótulos (receitas) – cada um com tag e valor.
+  // State for labels (recipes) – each with tag and value, ensuring all values are numbers
   const [receitas, setReceitas] = useState({
-    receitaA: { tag: socketTagA || "A", value: socketReceitaA },
-    receitaB: { tag: socketTagB || "B", value: socketReceitaB },
-    receitaC: { tag: socketTagC || "C", value: socketReceitaC },
-    receitaD: { tag: socketTagD || "D", value: socketReceitaD },
-    balancaA: { tag: socketTagBalanca || "Balança", value: socketReceitaBalancaA },
-    mixer: { tag: socketTagMisturador || "Misturador", value: socketReceitaMisturador },
+    receitaA: { tag: socketTagA || "A", value: ensureNumber(socketReceitaA) },
+    receitaB: { tag: socketTagB || "B", value: ensureNumber(socketReceitaB) },
+    receitaC: { tag: socketTagC || "C", value: ensureNumber(socketReceitaC) },
+    receitaD: { tag: socketTagD || "D", value: ensureNumber(socketReceitaD) },
+    balancaA: { tag: socketTagBalanca || "Balança", value: ensureNumber(socketReceitaBalancaA) },
+    mixer: { tag: socketTagMisturador || "Misturador", value: ensureNumber(socketReceitaMisturador) },
   });
 
-  // Atualiza os valores conforme os dados recebidos via socket.io
+  // Update values as socket.io data is received, ensuring all values are numbers
   useEffect(() => {
     setReceitas({
-      receitaA: { tag: socketTagA || "A", value: socketReceitaA },
-      receitaB: { tag: socketTagB || "B", value: socketReceitaB },
-      receitaC: { tag: socketTagC || "C", value: socketReceitaC },
-      receitaD: { tag: socketTagD || "D", value: socketReceitaD },
-      balancaA: { tag: socketTagBalanca || "Balança", value: socketReceitaBalancaA },
-      mixer: { tag: socketTagMisturador || "Misturador", value: socketReceitaMisturador },
+      receitaA: { tag: socketTagA || "A", value: ensureNumber(socketReceitaA) },
+      receitaB: { tag: socketTagB || "B", value: ensureNumber(socketReceitaB) },
+      receitaC: { tag: socketTagC || "C", value: ensureNumber(socketReceitaC) },
+      receitaD: { tag: socketTagD || "D", value: ensureNumber(socketReceitaD) },
+      balancaA: { tag: socketTagBalanca || "Balança", value: ensureNumber(socketReceitaBalancaA) },
+      mixer: { tag: socketTagMisturador || "Misturador", value: ensureNumber(socketReceitaMisturador) },
     });
   }, [
     socketTagA,
@@ -108,7 +115,7 @@ const Model = ({
       gl.setDefaultCamera(gltfCamera);
     }
 
-    // Configuração dos materiais dos funis – aplicando efeito blink se as flags socketFaltaMaterial* estiverem ativas.
+    // Material configuration for funnels – applying blink effect if socketFaltaMaterial* flags are active
     if (materials.FunilA) {
       materials.FunilA.onBeforeCompile = (shader) => {
         shader.uniforms.fillLevel = {
@@ -265,7 +272,7 @@ ${shader.fragmentShader}`.replace(
       };
       materials.FunilD.needsUpdate = true;
     }
-    // Para BalacaA (renomeado para BalancaA) e Misturador, sem efeito blink
+    // For BalacaA (renamed to BalancaA) and Misturador, without blink effect
     if (materials.BalacaA) {
       materials.BalacaA.onBeforeCompile = (shader) => {
         shader.uniforms.fillLevel = {
@@ -328,7 +335,7 @@ ${shader.fragmentShader}`.replace(
       };
       materials.Misturador.needsUpdate = true;
     }
-    // Para os sensores e unidades de vácuo – aplicamos o efeito de blink conforme as flags
+    // For sensors and vacuum units – apply blink effect according to flags
     if (materials.SensorA) {
       materials.SensorA.onBeforeCompile = (shader) => {
         shader.uniforms.time = { value: 0 };
@@ -499,7 +506,7 @@ ${shader.fragmentShader}`.replace(
   ]);
 
   useFrame((state, delta) => {
-    // Atualiza os valores dos funis, incluindo o tempo e a flag de blink
+    // Update funnel values, including time and blink flag
     if (materials.FunilA && materials.FunilA.userData.shader) {
       materials.FunilA.userData.shader.uniforms.fillLevel.value =
         getNormalizedFillLevel(socketValueFunilA, maxValueFunil, modelParams.initialFillLevel, modelParams.maxFillLevel);
@@ -532,7 +539,7 @@ ${shader.fragmentShader}`.replace(
       materials.Misturador.userData.shader.uniforms.fillLevel.value =
         getNormalizedFillLevel(socketValueMisturador, maxValueMisturador, modelParams.initialFillLevel, modelParams.maxFillLevel);
     }
-    // Atualiza o tempo e a flag de blink para sensores
+    // Update time and blink flag for sensors
     if (materials.SensorA && materials.SensorA.userData.shader) {
       materials.SensorA.userData.shader.uniforms.time.value += delta;
       materials.SensorA.userData.shader.uniforms.activateBlink.value = socketSensorA ? 1.0 : 0.0;
@@ -549,7 +556,7 @@ ${shader.fragmentShader}`.replace(
       materials.SensorD.userData.shader.uniforms.time.value += delta;
       materials.SensorD.userData.shader.uniforms.activateBlink.value = socketSensorD ? 1.0 : 0.0;
     }
-    // Atualiza o tempo e a flag de blink para unidades de vácuo
+    // Update time and blink flag for vacuum units
     if (materials.VacuoA && materials.VacuoA.userData.shader) {
       materials.VacuoA.userData.shader.uniforms.time.value += delta;
       materials.VacuoA.userData.shader.uniforms.activateBlink.value = socketVacuoA ? 1.0 : 0.0;
@@ -575,6 +582,9 @@ ${shader.fragmentShader}`.replace(
   const labelPositions = {
     receitaA: [-1, 3.2, 2],
     receitaB: [1.1, 3.2, 2],
+    receitaC: [-3.3, 4, 2],
+
+  
     receitaC: [-3.3, 4, 2],
     receitaD: [3.5, 4, 2],
     balancaA: [2.9, -1.1, -1.5],
