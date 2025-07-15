@@ -16,6 +16,8 @@ const Dashboard = () => {
   const isNonMediumScreens = useMediaQuery("(min-width: 1000px)");
   const [messageReceived, setMessageReceived] = useState({});
 
+
+
   // Function to normalize nivelA from 0-20000 to -1.5-2.9
   const normalizeNivelA = (value) => {
     if (value === undefined || value === null) return 100; // Default value if undefined
@@ -132,65 +134,116 @@ const Dashboard = () => {
             <Legend />
             <InfoCard
               title="Produção"
-              programmedValue={messageReceived?.registers?.producao?.kgHoraProgramado || "N/A"}
-              actualValue={messageReceived?.registers?.producao?.kgHoraAtual || "N/A"}
+              programmedValue={
+                messageReceived?.registers?.producao?.kgHoraProgramado !== undefined &&
+                messageReceived?.registers?.producao?.kgHoraProgramado !== null
+                  ? messageReceived.registers.producao.kgHoraProgramado
+                  : "N/A"
+              }
+              actualValue={
+                messageReceived?.registers?.producao?.kgHoraAtual !== undefined &&
+                messageReceived?.registers?.producao?.kgHoraAtual !== null
+                  ? messageReceived.registers.producao.kgHoraAtual
+                  : "N/A"
+              }
               socketVariavel={"kgHoraProgramado"}
               unit="kg/h"
               inputValidation={{
-                maxLength: 5, // 2 dígitos + vírgula + 2 dígitos
-                pattern: /^\d{1,2},\d{2}$/,
+                maxLength: 5,
+                pattern: /^\d{1,3}$/,
                 errorMessage: "O formato deve ser 00,00!"
               }}
             />
             <InfoCard
               title="Espessura"
-              programmedValue={messageReceived?.registers?.producao?.espessuraProgramado || "N/A"}
-              actualValue={messageReceived?.registers?.producao?.espessuraAtual || "N/A"}
+              programmedValue={
+                messageReceived?.registers?.producao?.espessuraProgramado !== undefined &&
+                messageReceived?.registers?.producao?.espessuraProgramado !== null
+                  ? messageReceived.registers.producao.espessuraProgramado
+                  : "N/A"
+              }
+              actualValue={
+                messageReceived?.registers?.producao?.espessuraAtual !== undefined &&
+                messageReceived?.registers?.producao?.espessuraAtual !== null
+                  ? messageReceived.registers.producao.espessuraAtual
+                  : "N/A"
+              }
               socketVariavel={"espessuraProgramada"}
               unit="μm"
               inputValidation={{
-                maxLength: 5, // 2 dígitos + vírgula + 2 dígitos
+                maxLength: 5,
                 pattern: /^\d{1,2},\d{2}$/,
                 errorMessage: "O formato deve ser 00,00!"
               }}
             />
             <InfoCard
               title="Grama/Metro"
-              programmedValue={messageReceived?.registers?.producao?.gramaturaAtual || "N/A"}
-              actualValue={messageReceived?.registers?.producao?.gramaturaProgramada || "N/A"}
+              programmedValue={
+                messageReceived?.registers?.producao?.gramaturaAtual !== undefined &&
+                messageReceived?.registers?.producao?.gramaturaAtual !== null
+                  ? messageReceived.registers.producao.gramaturaAtual
+                  : "N/A"
+              }
+              actualValue={
+                messageReceived?.registers?.producao?.gramaturaAtual !== undefined &&
+                messageReceived?.registers?.producao?.gramaturaAtual !== null
+                  ? messageReceived.registers.producao.gramaturaAtual
+                  : "N/A"
+              }
               /*socketVariavel={"gramaturaProgramada"}*/
               unit="g/m"
               inputValidation={{
-                maxLength: 5, // 2 dígitos + vírgula + 2 dígitos
+                maxLength: 5,
                 pattern: /^\d{1,2},\d{2}$/,
                 errorMessage: "O formato deve ser 00,00!"
               }}
             />
             <InfoCard
               title="Vel. Puxador"
-              programmedValue={messageReceived?.registers?.producao?.puxadorProgramado || "N/A"}
-              actualValue={messageReceived?.registers?.producao?.puxadorAtual || "N/A"}
+              programmedValue={
+                messageReceived?.registers?.producao?.puxadorProgramado !== undefined &&
+                messageReceived?.registers?.producao?.puxadorProgramado !== null
+                  ? messageReceived.registers.producao.puxadorProgramado
+                  : "N/A"
+              }
+              actualValue={
+                messageReceived?.registers?.Puxador?.puxadorFeedBackSpeed !== undefined &&
+                messageReceived?.registers?.Puxador?.puxadorFeedBackSpeed !== null
+                  ? messageReceived.registers.Puxador.puxadorFeedBackSpeed
+                  : "N/A"
+              }
               /*socketVariavel={"puxadorProgramado"}*/
               unit="m/min"
               inputValidation={{
-                maxLength: 5, // 2 dígitos + vírgula + 2 dígitos
-                pattern: /^\d{1,2},\d{2}$/,
+                maxLength: 5,
+                pattern: /^\d{1,3},\d{2}$/,
                 errorMessage: "O formato deve ser 00,00!"
               }}
             />
             <InfoCard
               title="Largura"
-              programmedValue={messageReceived?.registers?.producao?.larguraProgramada || "N/A"}
-              actualValue={messageReceived?.registers?.producao?.larguraAtual || "N/A"}
+              programmedValue={
+                messageReceived?.registers?.producao?.larguraProgramada !== undefined &&
+                messageReceived?.registers?.producao?.larguraProgramada !== null
+                  ? messageReceived.registers.producao.larguraProgramada
+                  : "N/A"
+              }
+              actualValue={
+                messageReceived?.registers?.producao?.larguraAtual !== undefined &&
+                messageReceived?.registers?.producao?.larguraAtual !== null
+                  ? messageReceived.registers.producao.larguraAtual
+                  : "N/A"
+              }
               socketVariavel={"larguraProgramada"}
               unit="mm"
-              
               inputValidation={{
-                maxLength: 5, // 2 dígitos + vírgula + 2 dígitos
-                pattern: /^\d{1,2},\d{2}$/,
+                maxLength: 5,
+                pattern: /^\d{1,4},\d{0}$/,
                 errorMessage: "O formato deve ser 00,00!"
               }}
             />
+
+
           </Box>
         </Box>
 
@@ -209,7 +262,7 @@ const Dashboard = () => {
             socketValueFunilA={normalizeNivelA(messageReceived?.registers?.threeJs?.nivelA)} // normalized from 0-20000 to -1.5-2.9
             socketValueFunilB={normalizeNivelB(messageReceived?.registers?.threeJs?.nivelB)} // normalized from 0-20000 to -1.6-2.6
             socketValueFunilC={normalizeNivelC(messageReceived?.registers?.threeJs?.nivelC)} // normalized from 0-20000 to 1.9-6.2
-            socketValueFunilD={4} // normalized from 0-20000 to 0.7-5.0
+            socketValueFunilD={normalizeNivelD(messageReceived?.registers?.threeJs?.nivelD)} // normalized from 0-20000 to 0.7-5.0
             colorBatch="#00FF00"
             maxValueBalacaA={100}
             socketValueBalacaA={normalizePesoBalanca(messageReceived?.registers?.threeJs?.pesoBalanca)} // normalized from 0-20000 to -4.8 to -3.2
@@ -217,14 +270,14 @@ const Dashboard = () => {
             maxValueMisturador={100}       // max =100 
             socketValueMisturador={normalizePesoMixer(messageReceived?.registers?.threeJs?.pesoMixer)} // normalized from 0-20000 to -9.1 to -4.8
            
-            socketFaltaMaterialA={messageReceived?.coils?.threeJs?.capacitivoA || false}
-            socketFaltaMaterialB={messageReceived?.coils?.threeJs?.capacitivoB || false}
-            socketFaltaMaterialC={messageReceived?.coils?.threeJs?.capacitivoC || false}
-            socketFaltaMaterialD={messageReceived?.coils?.threeJs?.capacitivoD || false}
-            socketReceitaA={messageReceived?.registers?.threeJs?.percentualA || 100}
-            socketReceitaB={messageReceived?.registers?.threeJs?.percentualA || 100}
-            socketReceitaC={messageReceived?.registers?.threeJs?.percentualA || 100}
-            socketReceitaD={messageReceived?.registers?.threeJs?.percentualA || 100}
+            socketFaltaMaterialA={messageReceived?.coils?.threeJs?.testeA || false}
+            socketFaltaMaterialB={messageReceived?.coils?.threeJs?.testeB || false}
+            socketFaltaMaterialC={messageReceived?.coils?.threeJs?.testeC || false}
+            socketFaltaMaterialD={messageReceived?.coils?.threeJs?.testeD || false}
+            socketReceitaA={messageReceived?.registers?.threeJs?.percentualA || "000" }
+            socketReceitaB={messageReceived?.registers?.threeJs?.percentualB || "000"}
+            socketReceitaC={messageReceived?.registers?.threeJs?.percentualC || "000"}
+            socketReceitaD={messageReceived?.registers?.threeJs?.percentualD || "000"}
             socketTagA="PP"
             socketTagB="PE"
             socketTagC="Aditivo"
@@ -240,12 +293,13 @@ const Dashboard = () => {
             socketVacuoC={messageReceived?.coils?.threeJs?.alimentandoC || false}
             socketVacuoD={messageReceived?.coils?.threeJs?.alimentandoD || false}
 
-            socketReceitaBalancaA = {messageReceived?.registers?.threeJs?.pesoBalanca || 0}
+            socketReceitaBalancaA = {(messageReceived?.registers?.threeJs?.pesoBalanca ?? 0) / 1000}
             socketTagBalanca="Balança"
-            socketReceitaMisturador = {messageReceived?.registers?.threeJs?.pesoMixer || 0}
+            socketReceitaMisturador = {(messageReceived?.registers?.threeJs?.pesoMixer ?? 0) / 1000}
             socketTagMisturador="Misturador"
           />
         </Box>
+
         <Box
           gridColumn="span 6"
           gridRow="span 8"
@@ -266,13 +320,13 @@ const Dashboard = () => {
               textFalseOnOff={"Desligado"}
               textTrueControl={"Controle de Produção"}
               textFalseControl={"Controle de Produção"}
-              value={messageReceived?.registers?.Extrusora?.extrusoraFeedBackSpeed || 1745}
+              value={messageReceived?.registers?.Extrusora?.extrusoraFeedBackSpeed || "000"}
               minValue={0}
               maxValue={1745}
               unit="Rpm"
               icon={<InfoIcon sx={{ color: theme.palette.secondary[300], fontSize: "26px" }} />}
               ligado={messageReceived?.coils?.Extrusora?.extrusoraLigadoDesligado || false}
-              onOff={messageReceived?.coils?.Extrusora?.extrusoraLigaDesliga || false}
+              onOff={messageReceived?.coils?.Extrusora?.extrusoraLigadoDesligado || false}
               autManual={messageReceived?.coils?.Extrusora?.extrusoraAutManEstado || false}
               dialogTitle="Detalhes da Extrusora"
               erro={messageReceived?.coils?.Extrusora?.extrusoraErro || false}
@@ -296,14 +350,14 @@ const Dashboard = () => {
               textFalseOnOff={"Desligado"}
               textTrueControl={"Controle de Espessura"}
               textFalseControl={"Controle de Espessura"}
-              value={messageReceived?.registers?.Puxador?.puxadorFeedBackSpeed || 500}
+              value={messageReceived?.registers?.Puxador?.puxadorFeedBackSpeed || "000"}
               unit="m/min"  
               minValue={0}
-              maxValue={1000}
+              maxValue={120}
               ligado={messageReceived?.coils?.Puxador?.puxadorLigadoDesligado ?? false}
               onOff={messageReceived?.coils?.Puxador?.puxadorLigadoDesligado ?? false}
               autManual={messageReceived?.coils?.Puxador?.puxadorAutManEstado ?? false}
-              erro={messageReceived?.coils?.Puxador?.puxadorAlarmErro ?? false}
+              erro={messageReceived?.coils?.Puxador?.puxadorErro ?? false}
               icon={<InfoIcon sx={{ color: theme.palette.secondary[300], fontSize: "26px" }} />}
               dialogTitle="Detalhes do Puxador"
               dialogContent={

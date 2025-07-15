@@ -9,30 +9,33 @@ const RealTimeLineChart = ({
   escala = false, 
   legenda = false, 
   cor = '#ffbb00',
-  transparencia = 0.1 // Transparência padrão de 50%
+  transparencia = 0.1,
+  realTimeData // New prop for receiving real-time data
 }) => {
   const [data, setData] = useState([]);
   const containerRef = useRef(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
-
   const MAX_DATA_POINTS = 120;
   const [fullDataArray, setFullDataArray] = useState(Array(MAX_DATA_POINTS).fill(null));
 
+  // Update data when new realTimeData is received
   useEffect(() => {
-    const interval = setInterval(() => {
-      const mockValue = 100 + Math.floor(Math.random() * 50);
-      setData(prev => [...prev, mockValue].slice(-MAX_DATA_POINTS));
-    }, 1000);
+    if (realTimeData !== undefined && realTimeData !== null) {
+      setData(prev => {
+        const newData = [...prev, realTimeData].slice(-MAX_DATA_POINTS);
+        return newData;
+      });
+    }
+  }, [realTimeData]);
 
-    return () => clearInterval(interval);
-  }, []);
-
+  // Update fullDataArray when data changes
   useEffect(() => {
     const newFullArray = Array(MAX_DATA_POINTS).fill(null);
     data.forEach((value, index) => newFullArray[index] = value);
     setFullDataArray(newFullArray);
   }, [data]);
 
+  // Handle container resizing
   useEffect(() => {
     const updateSize = () => {
       if (containerRef.current) {

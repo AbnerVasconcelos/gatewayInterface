@@ -58,21 +58,25 @@ const InfoCard = ({
     }
   };
 
+  const sendData = () => {
+    // Remove todas as vírgulas do valor digitado
+    const normalizedValue = inputValue.replace(/,/g, '');
+    if (inputValidation.pattern.test(inputValue)) {
+      const numericValue = parseInt(normalizedValue, 10);
+      // Modificação aqui - criar um objeto com a chave dinâmica
+      const payload = { [socketVariavel]: numericValue };
+      console.log("Objeto enviado:", payload);
+      // Aqui você pode enviar o payload via socket ou outra ação necessária
+      closeModal();
+    } else {
+      setErrorMessage("Entrada Inválida");
+    }
+  };
 
-const sendData = () => {
-  // Remove todas as vírgulas do valor digitado
-  const normalizedValue = inputValue.replace(/,/g, '');
-  if (inputValidation.pattern.test(inputValue)) {
-    const numericValue = parseInt(normalizedValue, 10);
-    // Modificação aqui - criar um objeto com a chave dinâmica
-    const payload = { [socketVariavel]: numericValue };
-    console.log("Objeto enviado:", payload);
-    // Aqui você pode enviar o payload via socket ou outra ação necessária
-    closeModal();
-  } else {
-    setErrorMessage("Entrada Inválida");
-  }
-};
+  // Função auxiliar para formatar valores
+  const formatValue = (value) => {
+    return value !== undefined && value !== null ? value : "N/A";
+  };
 
   return (
     <>
@@ -121,7 +125,7 @@ const sendData = () => {
                   color: theme.palette.success.main,
                 }}
               >
-                {programmedValue || "N/A"}
+                {formatValue(programmedValue)}
               </Typography>
               <Typography
                 sx={{
@@ -142,7 +146,7 @@ const sendData = () => {
                   color: theme.palette.error.main,
                 }}
               >
-                {actualValue || "N/A"}
+                {formatValue(actualValue)}
               </Typography>
               <Typography
                 sx={{

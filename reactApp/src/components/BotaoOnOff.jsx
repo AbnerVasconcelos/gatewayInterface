@@ -5,7 +5,7 @@ import { socket } from "../socket";
 const BotaoOnOff = ({
   on,
   onClick,
-  socketVariavel = "botaoOnOff",
+  socketVariavel,
   customIcon,
 }) => {
   const theme = useTheme();

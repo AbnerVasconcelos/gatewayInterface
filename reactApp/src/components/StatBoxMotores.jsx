@@ -122,7 +122,7 @@ const StatBoxMotores = ({
             <DialogWrapper
               triggerComponent={
                 <Box sx={{ width: "80px", height: "40px" }}>
-                  <RealTimeLineChart height={60} width="110%" cor="#ffe766" transparencia={0.3} />
+                  <RealTimeLineChart realTimeData={value} height={60} width="110%" cor="#ffe766" transparencia={0.3} />
                 </Box>
               }
               title={dialogTitle}

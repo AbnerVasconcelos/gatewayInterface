@@ -22,6 +22,7 @@ import {
 import Delfos from "./Delfos";
 import Flag from 'react-world-flags';
 import BotaoOnOff from "./BotaoOnOff";
+import { socket } from "../socket";
 
 
 const initialAlarms = [
@@ -40,17 +41,32 @@ const initialAlarms = [
 const Navbar = ({ isSidebarOpen, setIsSidebarOpen }) => {
   const dispatch = useDispatch();
   const theme = useTheme();
+  const [alarms, setAlarms] = useState(initialAlarms);// Estado dos alarmes (mock data)
+  const [messageReceived, setMessageReceived] = useState({});
+  const [currentTime, setCurrentTime] = useState(new Date());// Atualiza a data e hora a cada segundo
 
-  // Estado dos alarmes (mock data)
-  const [alarms, setAlarms] = useState(initialAlarms);
 
-  // Atualiza a data e hora a cada segundo
-  const [currentTime, setCurrentTime] = useState(new Date());
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
     return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    socket.on("read", (data) => {
+      try {
+        const parsedData = JSON.parse(data);
+        setMessageReceived(parsedData);
+        console.log("Dados recebidos e atualizados:", parsedData);
+      } catch (error) {
+        console.error("Erro ao processar dados do socket:", error);
+      }
+    });
+
+    return () => {
+      socket.off("read");
+    };
   }, []);
 
   // (Opcional) Simula atualização dos alarmes a cada 3 segundos
@@ -83,7 +99,7 @@ const Navbar = ({ isSidebarOpen, setIsSidebarOpen }) => {
           </IconButton>
           <Box display="flex" flexDirection="row" alignItems="center" gap="0.5rem" height="100%">
           <Delfos />
-          <BotaoOnOff on={false} onClick={() => {}} socketVariavel="habilitaDosagem" />
+          <BotaoOnOff on={messageReceived?.coils?.dosador?.habilitaDosagem } onClick={() => {}} socketVariavel="habilitaDosagem" />
           </Box>
         </FlexBetween>
 
