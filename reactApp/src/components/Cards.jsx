@@ -10,6 +10,7 @@ import Button from "@mui/material/Button";
 import Keyboard from "react-simple-keyboard";
 import "react-simple-keyboard/build/css/index.css";
 import { useTheme } from "@mui/material/styles";
+import { socket } from "../socket";
 
 const InfoCard = ({
   title,
@@ -63,10 +64,10 @@ const InfoCard = ({
     const normalizedValue = inputValue.replace(/,/g, '');
     if (inputValidation.pattern.test(inputValue)) {
       const numericValue = parseInt(normalizedValue, 10);
-      // Modificação aqui - criar um objeto com a chave dinâmica
-      const payload = { [socketVariavel]: numericValue };
-      console.log("Objeto enviado:", payload);
-      // Aqui você pode enviar o payload via socket ou outra ação necessária
+      // Modificação aqui - envio via socket.io igual ao BotaoOnOff
+      const data = { [socketVariavel]: numericValue };
+      socket.emit("mensagem", data);
+      console.log("Mensagem enviada via socket.io:", data);
       closeModal();
     } else {
       setErrorMessage("Entrada Inválida");

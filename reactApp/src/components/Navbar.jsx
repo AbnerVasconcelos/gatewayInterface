@@ -1,3 +1,4 @@
+// Navbar.jsx
 import React, { useState, useEffect } from "react";
 import {
   LightModeOutlined,
@@ -24,41 +25,92 @@ import Flag from 'react-world-flags';
 import BotaoOnOff from "./BotaoOnOff";
 import { socket } from "../socket";
 
-
-const initialAlarms = [
-  { id: 1, message: "Queda de comunicação com o PLC !", active: true },
-  { id: 2, message: "Falta de material no Funil A !", active: true },
-  { id: 3, message: "Falta de material no Funil B !", active: true },
-  { id: 4, message: "Falta de material no Funil C !", active: true },
-  { id: 5, message: "Falta de material no Funil D !", active: true },
-  { id: 6, message: "Célula da balança desconectada!", active: true },
-  { id: 7, message: "Sem Material no Bag, Funis não conseguem se abastecer!", active: true },
-  { id: 8, message: "Falha no motor do puxador", active: true },
-  { id: 9, message: "Falha no motor da extrusora", active: true },
-  { id: 10, message: "Falha na leitura do encoder", active: true },
-];
-
 const Navbar = ({ isSidebarOpen, setIsSidebarOpen }) => {
   const dispatch = useDispatch();
   const theme = useTheme();
-  const [alarms, setAlarms] = useState(initialAlarms);// Estado dos alarmes (mock data)
+
+  const [alarms, setAlarms] = useState([]);
   const [messageReceived, setMessageReceived] = useState({});
-  const [currentTime, setCurrentTime] = useState(new Date());// Atualiza a data e hora a cada segundo
+  const [currentTime, setCurrentTime] = useState(new Date());
 
-
+  // Atualiza hora
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
+  // Recebe dados via socket
   useEffect(() => {
     socket.on("read", (data) => {
       try {
         const parsedData = JSON.parse(data);
         setMessageReceived(parsedData);
-        console.log("Dados recebidos e atualizados:", parsedData);
+
+        // Persistência dos alarmes enquanto o valor for true
+        const emergenciaAtiva = parsedData?.coils?.alarmes?.emergencia === true;
+        const materialNaBalanca = parsedData?.coils?.alarmes?.materialNaBalanca === true;
+        const erroNaDosagem = parsedData?.coils?.dosador?.erroNaDosagem === true;
+
+        setAlarms((prevAlarms) => {
+          let updatedAlarms = [...prevAlarms];
+
+          // Emergência
+          const emergenciaIndex = updatedAlarms.findIndex(a => a.id === "emergencia");
+          if (emergenciaAtiva) {
+            if (emergenciaIndex === -1) {
+              updatedAlarms.push({
+                id: "emergencia",
+                message: "Emergência Ativa! Após Desativar, pressione os RESET",
+                active: true
+              });
+            } else {
+              updatedAlarms[emergenciaIndex].active = true;
+            }
+          } else {
+            if (emergenciaIndex !== -1) {
+              updatedAlarms.splice(emergenciaIndex, 1);
+            }
+          }
+
+          // Material na Balança
+          const materialIndex = updatedAlarms.findIndex(a => a.id === "materialNaBalanca");
+          if (materialNaBalanca) {
+            if (materialIndex === -1) {
+              updatedAlarms.push({
+                id: "materialNaBalanca",
+                message: "Material na Balança! Pressione a válvula de descarga",
+                active: true
+              });
+            } else {
+              updatedAlarms[materialIndex].active = true;
+            }
+          } else {
+            if (materialIndex !== -1) {
+              updatedAlarms.splice(materialIndex, 1);
+            }
+          }
+
+          // Erro na Dosagem
+          const erroDosagemIndex = updatedAlarms.findIndex(a => a.id === "erroNaDosagem");
+          if (erroNaDosagem) {
+            if (erroDosagemIndex === -1) {
+              updatedAlarms.push({
+                id: "erroNaDosagem",
+                message: "Erro na Dosagem! Verifique o sistema de dosagem.",
+                active: true
+              });
+            } else {
+              updatedAlarms[erroDosagemIndex].active = true;
+            }
+          } else {
+            if (erroDosagemIndex !== -1) {
+              updatedAlarms.splice(erroDosagemIndex, 1);
+            }
+          }
+
+          return updatedAlarms;
+        });
+
       } catch (error) {
         console.error("Erro ao processar dados do socket:", error);
       }
@@ -67,19 +119,6 @@ const Navbar = ({ isSidebarOpen, setIsSidebarOpen }) => {
     return () => {
       socket.off("read");
     };
-  }, []);
-
-  // (Opcional) Simula atualização dos alarmes a cada 3 segundos
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setAlarms((prevAlarms) =>
-        prevAlarms.map((alarm) => ({
-          ...alarm,
-          active: Math.random() < 0.3, // 30% de chance de estar ativo
-        }))
-      );
-    }, 3000);
-    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -98,37 +137,45 @@ const Navbar = ({ isSidebarOpen, setIsSidebarOpen }) => {
             <MenuIcon />
           </IconButton>
           <Box display="flex" flexDirection="row" alignItems="center" gap="0.5rem" height="100%">
-          <Delfos />
-          <BotaoOnOff on={messageReceived?.coils?.dosador?.habilitaDosagem } onClick={() => {}} socketVariavel="habilitaDosagem" />
+            <Delfos />
+            <BotaoOnOff 
+              on={messageReceived?.coils?.dosador?.habilitaDosagem} 
+              onClick={() => {}} 
+              socketVariavel="habilitaDosagem" 
+            />
+            <BotaoOnOff 
+              on={messageReceived?.coils?.alimentador?.habilitaAlimentador} 
+              onClick={() => {}} 
+              socketVariavel="habilitaAlimentador" 
+            />
           </Box>
         </FlexBetween>
+        
 
         {/* RIGHT SIDE */}
         <FlexBetween gap="0.5rem">
-
-        <div style={{ display: 'flex', gap: '1rem' }}>
-      <Flag code="BR" style={{ width: 48, height: 32 }} />
-      <Flag code="ES" style={{ width: 48, height: 32 }} />
-      <Flag code="US" style={{ width: 48, height: 32 }} />
-    </div>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <Flag code="BR" style={{ width: 48, height: 32 }} />
+            <Flag code="ES" style={{ width: 48, height: 32 }} />
+            <Flag code="US" style={{ width: 48, height: 32 }} />
+          </div>
           <IconButton onClick={() => dispatch(setMode())}>
             <LightModeOutlined sx={{ fontSize: "25px" }} />
           </IconButton>
           
-           {/* CENTER: Data e Hora */}
-           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
-          {currentTime.toLocaleDateString()}
-        </Typography>
-        <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
-          {currentTime.toLocaleTimeString(undefined, {hour: '2-digit', minute:'2-digit'})}
-        </Typography>
-      </Box>
+          {/* Data e Hora */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
+              {currentTime.toLocaleDateString()}
+            </Typography>
+            <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
+              {currentTime.toLocaleTimeString(undefined, {hour: '2-digit', minute:'2-digit'})}
+            </Typography>
+          </Box>
         </FlexBetween>
 
-        {/* Container de alertas – comentado para este exemplo */}
-        
-        {/* <Box
+        {/* ALERTAS */}
+        <Box
           sx={{
             position: "absolute",
             top: "10px",
@@ -170,7 +217,7 @@ const Navbar = ({ isSidebarOpen, setIsSidebarOpen }) => {
                             )
                           }
                         >
-                          Undo
+                          OK
                         </Button>
                         <IconButton
                           aria-label="close"
@@ -199,8 +246,7 @@ const Navbar = ({ isSidebarOpen, setIsSidebarOpen }) => {
                 </Collapse>
               </Box>
             ))}
-        </Box> */}
-        
+        </Box>
       </Toolbar>
     </AppBar>
   );

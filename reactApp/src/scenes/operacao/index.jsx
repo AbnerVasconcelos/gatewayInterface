@@ -72,7 +72,7 @@ const Dashboard = () => {
     const minOriginal = 0;
     const maxOriginal = 20000;
     const minTarget = -4.8;
-    const maxTarget = -3.2;
+    const maxTarget = 1;
     
     // Linear normalization formula
     return minTarget + ((value - minOriginal) / (maxOriginal - minOriginal)) * (maxTarget - minTarget);
@@ -84,7 +84,7 @@ const Dashboard = () => {
     const minOriginal = 0;
     const maxOriginal = 20000;
     const minTarget = -9.1;
-    const maxTarget = -4.8;
+    const maxTarget = -3.5;
     
     // Linear normalization formula
     return minTarget + ((value - minOriginal) / (maxOriginal - minOriginal)) * (maxTarget - minTarget);
@@ -157,9 +157,9 @@ const Dashboard = () => {
             <InfoCard
               title="Espessura"
               programmedValue={
-                messageReceived?.registers?.producao?.espessuraProgramado !== undefined &&
-                messageReceived?.registers?.producao?.espessuraProgramado !== null
-                  ? messageReceived.registers.producao.espessuraProgramado
+                messageReceived?.registers?.producao?.espessuraProgramada !== undefined &&
+                messageReceived?.registers?.producao?.espessuraProgramada !== null
+                  ? messageReceived.registers.producao.espessuraProgramada
                   : "N/A"
               }
               actualValue={
@@ -212,7 +212,7 @@ const Dashboard = () => {
                   ? messageReceived.registers.Puxador.puxadorFeedBackSpeed
                   : "N/A"
               }
-              /*socketVariavel={"puxadorProgramado"}*/
+              socketVariavel={"puxadorProgramado"}
               unit="m/min"
               inputValidation={{
                 maxLength: 5,
@@ -238,7 +238,7 @@ const Dashboard = () => {
               unit="mm"
               inputValidation={{
                 maxLength: 5,
-                pattern: /^\d{1,4},\d{0}$/,
+                pattern: /^\d{1,4}$/,
                 errorMessage: "O formato deve ser 00,00!"
               }}
             />

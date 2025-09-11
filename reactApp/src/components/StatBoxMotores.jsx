@@ -9,6 +9,7 @@ import Keyboard from "react-simple-keyboard";
 import "react-simple-keyboard/build/css/index.css";
 import StepperMotores from "./Stepper";
 import RealTimeLineChart from "./LineCharts";
+import { socket } from "../socket";
 
 
 const StatBoxMotores = ({
@@ -72,12 +73,14 @@ const StatBoxMotores = ({
     }
   };
 
-  // Valida a entrada e envia o objeto com o número inteiro (removendo a vírgula)
+  // Valida a entrada e envia o objeto via socket.io
   const sendData = () => {
     if (inputValidation.pattern.test(inputValue)) {
       const numericValue = parseInt(inputValue.replace(/,/g, ''), 10);
-      const payload = { tag: socketVariavel, value: numericValue };
-      console.log("Objeto enviado:", payload);
+      // Modificação aqui - envio via socket.io igual ao BotaoOnOff
+      const data = { [socketVariavel]: numericValue };
+      socket.emit("mensagem", data);
+      console.log("Mensagem enviada via socket.io:", data);
       closeModal();
     } else {
       setErrorMessage("Entrada Inválida");
