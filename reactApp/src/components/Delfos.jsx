@@ -28,7 +28,7 @@ const theme = useTheme();
         src="/logo192.png"
         alt="Logo Delfos"
         style={{
-          width: '40px',
+          width: '50px',
           height: '40px', 
           objectFit: 'contain',
           borderRadius: '1px',

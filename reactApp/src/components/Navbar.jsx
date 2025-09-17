@@ -143,11 +143,17 @@ const Navbar = ({ isSidebarOpen, setIsSidebarOpen }) => {
               onClick={() => {}} 
               socketVariavel="habilitaDosagem" 
             />
+            <Typography variant="body2" sx={{ color: 'text.primary', fontSize: 14 }}>
+              Dosagem
+            </Typography>
             <BotaoOnOff 
               on={messageReceived?.coils?.alimentador?.habilitaAlimentador} 
               onClick={() => {}} 
               socketVariavel="habilitaAlimentador" 
             />
+            <Typography variant="body2" sx={{ color: 'text.primary', fontSize: 14 }}>
+              Alimentador
+            </Typography>
           </Box>
         </FlexBetween>
         

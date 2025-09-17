@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TextField, Grid, Typography, Box } from '@mui/material';
+import { TextField, Grid,Box } from '@mui/material';
 
 const ProgramadoAtualFields = () => {
   // Estado dos valores

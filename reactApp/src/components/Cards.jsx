@@ -144,7 +144,7 @@ const InfoCard = ({
                 sx={{
                   fontSize: 20,
                   fontWeight: "bold",
-                  color: theme.palette.error.main,
+                  color: '#00ffff',
                 }}
               >
                 {formatValue(actualValue)}

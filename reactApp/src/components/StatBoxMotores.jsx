@@ -3,11 +3,9 @@ import { Box, Typography, useTheme, Dialog, DialogContent, DialogActions, Button
 import FlexBetween from "./FlexBetween";
 import GaugeComponent from "./Gauger";
 import DialogWrapper from "./DialogWrapper";
-import InfoIcon from '@mui/icons-material/Info';
 import ButtonTrueFalse from "./ButtonTrueFalse";
 import Keyboard from "react-simple-keyboard";
 import "react-simple-keyboard/build/css/index.css";
-import StepperMotores from "./Stepper";
 import RealTimeLineChart from "./LineCharts";
 import { socket } from "../socket";
 
