@@ -1,172 +1,153 @@
-// App.jsx
-import React, { useEffect, useMemo, Suspense, lazy, useState, createContext, useContext, useRef } from "react";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { createTheme } from "@mui/material/styles";
+import { useMemo, useState, useEffect, Suspense, lazy } from "react";
 import { useSelector } from "react-redux";
 import { HashRouter, Navigate, Route, Routes } from "react-router-dom";
 import { themeSettings } from "theme";
 
 import { AuthProvider } from "./context/AuthContext";
-import { onAuthStateChanged, setPersistence, browserLocalPersistence } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 import { useAuthentication } from "./hooks/useAuthentication";
+import { socket } from "./socket.js";
 
-import { socket } from "./socket"; // sua instância configurada do socket.io-client
-
-/* ======================= SocketProvider (fora do App) ======================= */
-// Polyfill simples
-const ric = window.requestIdleCallback || ((cb) => setTimeout(() => cb({ timeRemaining: () => 0 }), 1));
-const cic = window.cancelIdleCallback || clearTimeout;
-
-const SocketCtx = createContext({ data: [] });
-export const useSocketData = () => useContext(SocketCtx).data;
-
-function SocketProvider({ user, children }) {
-  const MAX_BUFFER_SIZE = 10;
-
-  const bufferRef = useRef([]);
-  const rafRef = useRef(0);
-  const startedRef = useRef(false);
-  const [data, setData] = useState([]);
-
-  useEffect(() => {
-    if (!user) return;
-    if (startedRef.current) return; // evita dupla conexão no StrictMode (dev)
-    startedRef.current = true;
-
-    let cleanupSocket = null;
-    const idleId = ric(() => {
-      if (document.visibilityState !== "visible") {
-        const onVisible = () => {
-          if (document.visibilityState === "visible") {
-            document.removeEventListener("visibilitychange", onVisible);
-            cleanupSocket = start();
-          }
-        };
-        document.addEventListener("visibilitychange", onVisible);
-        return;
-      }
-      cleanupSocket = start();
-    });
-
-    function start() {
-      socket.connect();
-      socket.emit("user", { email: user.email });
-
-      const onData = (pkg) => {
-        const next = bufferRef.current.concat(pkg);
-        if (next.length > MAX_BUFFER_SIZE) next.splice(0, next.length - MAX_BUFFER_SIZE);
-        bufferRef.current = next;
-
-        if (!rafRef.current) {
-          rafRef.current = requestAnimationFrame(() => {
-            rafRef.current = 0;
-            setData(bufferRef.current.slice()); // 1 render por frame
-          });
-        }
-      };
-
-      socket.on("data", onData);
-
-      return () => {
-        if (rafRef.current) cancelAnimationFrame(rafRef.current);
-        rafRef.current = 0;
-        socket.off("data", onData);
-        socket.disconnect();
-        startedRef.current = false;
-      };
-    }
-
-    return () => {
-      cic(idleId);
-      if (cleanupSocket) cleanupSocket();
-    };
-  }, [user]);
-
-  return <SocketCtx.Provider value={{ data }}>{children}</SocketCtx.Provider>;
-}
-/* ========================================================================== */
-
-/* ======================== Lazy imports (code-splitting) ==================== */
-const Layout     = lazy(() => import("scenes/layout"));
-const Admin      = lazy(() => import("scenes/admin"));
-const Login      = lazy(() => import("pages/Login/Login"));
-const Register   = lazy(() => import("pages/Register/Register"));
-const Alarmes    = lazy(() => import("scenes/Alarmes"));
+// ✅ Lazy load das rotas pesadas
+const Layout = lazy(() => import("scenes/layout"));
+const Admin = lazy(() => import("scenes/admin"));
+const Login = lazy(() => import("pages/Login/Login"));
+const Register = lazy(() => import("pages/Register/Register"));
+const Alarmes = lazy(() => import("scenes/Alarmes"));
 const Calibragem = lazy(() => import("scenes/Calibragem"));
-const Config     = lazy(() => import("scenes/Config"));
-const Producao   = lazy(() => import("scenes/Produção"));
-const Receitas   = lazy(() => import("scenes/Receitas"));
-const Operacao   = lazy(() => import("scenes/operacao"));
+const Config = lazy(() => import("scenes/Config"));
+const Producao = lazy(() => import("scenes/Produção"));
+const Receitas = lazy(() => import("scenes/Receitas"));
 const SocketPage = lazy(() => import("scenes/socket"));
-/* ========================================================================== */
+const Operacao = lazy(() => import("scenes/operacao"));
 
-export default function App() {
+// ✅ Splash Screen leve
+const SplashScreen = () => (
+  <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
+    <p>Carregando aplicação...</p>
+  </div>
+);
+
+function App() {
   const mode = useSelector((state) => state.global.mode);
   const theme = useMemo(() => createTheme(themeSettings(mode)), [mode]);
 
-  // Auth
+  //############################### Autenticação ##############################
+  const [user, setUser] = useState(undefined); // undefined = ainda carregando
   const { auth } = useAuthentication();
-  const [user, setUser] = useState(null);
-  const [authReady, setAuthReady] = useState(false);
+  const loadingUser = user === undefined;
 
   useEffect(() => {
-    // garante persistência da sessão
-    setPersistence(auth, browserLocalPersistence).catch(console.error);
-
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u || null);
-      setAuthReady(true);
-    });
-    return () => unsub();
+    // Mantemos a assinatura do Firebase: quando o estado do auth mudar, atualizamos user (null = não logado)
+    const unsubscribe = onAuthStateChanged(auth, (u) => setUser(u || null));
+    return () => unsubscribe();
   }, [auth]);
 
-  // Gate para rotas privadas (evita redirect antes do primeiro evento da auth)
-  const Private = ({ children }) => {
-    if (!authReady) return <div style={{ padding: 16 }}>Carregando…</div>;
-    return user ? children : <Navigate to="/login" replace />;
+  //######################## socket #############################################
+  // SocketProvider agora faz *bypass* com um fakeUser quando não há user real.
+  const SocketProvider = ({ children }) => {
+    const MAX_BUFFER_SIZE = 10;
+    const [dataBuffer, setDataBuffer] = useState([]);
+
+    useEffect(() => {
+      // Usuário fake — usado apenas quando `user` for null (ou seja, não autenticado).
+      const fakeUser = { email: "demo@teste.com", displayName: "Demo User" };
+
+      // Se o usuário ainda estiver undefined (carregando), não inicializamos o socket aqui.
+      // O App mostra SplashScreen enquanto loadingUser === true, então esse hook só rodará depois.
+      const activeUser = user || fakeUser;
+
+      // Conecta e configura listeners
+      socket.connect();
+
+      const handleConnect = () => {
+        console.log(`🔌 Conectado ao servidor Socket.io (emitindo usuário: ${activeUser.email})`);
+        socket.emit("user", { email: activeUser.email });
+      };
+
+      const handleDataReceived = (data) => {
+        setDataBuffer((prevBuffer) => {
+          const newBuffer = [...prevBuffer, data];
+          if (newBuffer.length > MAX_BUFFER_SIZE) newBuffer.shift();
+          return newBuffer;
+        });
+      };
+
+      socket.on("connect", handleConnect);
+      socket.on("data", handleDataReceived);
+
+      // ♻️ Reset automático do socket a cada 30 min
+      const resetInterval = setInterval(() => {
+        console.log("♻️ Resetando conexão do Socket.io...");
+        socket.disconnect();
+        setDataBuffer([]);
+        socket.connect();
+      }, 30 * 60 * 1000); // 30 minutos
+
+      return () => {
+        clearInterval(resetInterval);
+        socket.off("connect", handleConnect);
+        socket.off("data", handleDataReceived);
+        socket.disconnect();
+      };
+    }, [user]); // re-executa quando o `user` mudar (login/logout)
+
+    return children;
   };
+
+  //######################## Reload automático ########################
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log("🔄 Recarregando aplicação após 30 minutos...");
+      window.location.reload();
+    }, 30 * 60 * 1000); // 30 minutos
+
+    return () => clearInterval(interval);
+  }, []);
+
+  //#############################################################################
+  // Enquanto checa o estado do user (undefined) mostra splash. Depois segue normalmente.
+  if (loadingUser) return <SplashScreen />;
 
   return (
     <div className="app">
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <AuthProvider value={{ user }}>
-          <SocketProvider user={user}>
-            <HashRouter>
-              <Suspense fallback={<div style={{ padding: 16 }}>Carregando…</div>}>
+      {/* Mantemos AuthProvider para que o resto da aplicação continue recebendo o `user` real (ou null). */}
+      <AuthProvider value={{ user }}>
+        <SocketProvider>
+          <HashRouter>
+            <ThemeProvider theme={theme}>
+              <CssBaseline />
+              {/* ✅ Suspense para lazy loading */}
+              <Suspense fallback={<SplashScreen />}>
                 <Routes>
-                  {/* Rotas públicas */}
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/register" element={<Register />} />
-
-                  {/* Rotas protegidas */}
-                  <Route
-                    path="/"
-                    element={
-                      <Private>
-                        <Layout />
-                      </Private>
-                    }
-                  >
-                    <Route index element={<Navigate to="/operacao" replace />} />
-                    <Route path="admin" element={<Admin />} />
-                    <Route path="operacao" element={<Operacao />} />
-                    <Route path="socket" element={<SocketPage />} />
-                    <Route path="receitas" element={<Receitas />} />
-                    <Route path="producao" element={<Producao />} />
-                    <Route path="alarmes" element={<Alarmes />} />
-                    <Route path="calibragem" element={<Calibragem />} />
-                    <Route path="config" element={<Config />} />
+                  {/* 
+                    A estrutura de rota permanece: quando não há user real, seu app
+                    continua a exibir a rota de Login/Register. Porém o socket já terá
+                    sido conectado com o fakeUser (bypass) para permitir testes.
+                  */}
+                  <Route element={!user ? <Login /> : <Layout />}>
+                    <Route path="/" element={<Navigate to="/operacao" replace />} />
+                    <Route path="/admin" element={<Admin />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/operacao" element={<Operacao />} />
+                    <Route path="/register" element={<Register />} />
+                    <Route path="/socket" element={<SocketPage />} />
+                    <Route path="/receitas" element={<Receitas />} />
+                    <Route path="/producao" element={<Producao />} />
+                    <Route path="/alarmes" element={<Alarmes />} />
+                    <Route path="/calibragem" element={<Calibragem />} />
+                    <Route path="/config" element={<Config />} />
                   </Route>
-
-                  {/* Fallback para rotas desconhecidas */}
-                  <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </Suspense>
-            </HashRouter>
-          </SocketProvider>
-        </AuthProvider>
-      </ThemeProvider>
+            </ThemeProvider>
+          </HashRouter>
+        </SocketProvider>
+      </AuthProvider>
     </div>
   );
 }
+
+export default App;

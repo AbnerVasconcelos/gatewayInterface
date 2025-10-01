@@ -4,7 +4,7 @@ import Totalizador from "./totalizadores"; // Ajuste o caminho conforme sua estr
 import ConsumoKwHora from "./ConsumoKwHora";
 import MotorIcone from "./motorIcone";
 import { socket } from "../socket";
-
+import MultiInputDialog from "./Receitas";
 const BottomBar = () => {
   const theme = useTheme();
   const [messageReceived, setMessageReceived] = useState({});
@@ -36,7 +36,7 @@ const BottomBar = () => {
     >
       <Toolbar sx={{ justifyContent: "space-between", position: "relative" }}>
         {/* Lado esquerdo - ConsumoKwHora */}
-        <Box
+      {/*  <Box
           padding={"0.5rem"}
           display="flex"
           flexDirection="row"
@@ -50,8 +50,8 @@ const BottomBar = () => {
             socketVariavel="consumoEnergia"
             value={messageReceived?.registers?.producao?.consumoEnergia?.toString() || "0"}
           />
-        </Box>
-
+        </Box> */}
+       
         {/* Ícones de Misturador e Vácuo */}
         <Box padding={"0.5rem"} display="flex" flexDirection="row">
           <MotorIcone
@@ -59,7 +59,7 @@ const BottomBar = () => {
             onOff={messageReceived?.coils?.saidasDigitais?.misturador || false}
             error={messageReceived?.coils?.saidasDigitais?.erroMisturador || false}
             width="165px"
-            height="60px"
+            height="55px"
           />
         </Box>
         <Box>
@@ -68,9 +68,17 @@ const BottomBar = () => {
             onOff={messageReceived?.coils?.saidasDigitais?.compressorRadial || false}
             error={messageReceived?.coils?.saidasDigitais?.erroCompressor || false}
             width="165px"
-            height="60px"
+            height="55px"
           />
         </Box>
+        <Box Box padding={"0.5rem"} display="flex" flexDirection="row" 
+         width="165px"
+         height="60px"
+         >
+        <MultiInputDialog />
+        </Box>
+
+        
 
         {/* Lado direito - Totalizadores */}
         <Box
@@ -93,7 +101,7 @@ const BottomBar = () => {
             socketVariavel="totalizadoresMetros"
             value={messageReceived?.registers?.totalizadores?.totalMetros?.toString() || "0"}
             unit="m"
-            ligado={messageReceived?.coils?.totalizadores?.ligaDesligaTotalizadorPeso || false}
+            ligado={messageReceived?.coils?.totalizadores?.ligaDesligaTotalizadorMetros || false}
             label="Metragem Acumulada"
             width={300}
           />

@@ -180,18 +180,64 @@ const InfoCard = ({
           >
             {errorMessage || inputValue || title}
           </div>
-          <Keyboard
-            keyboardRef={(r) => (keyboardRef.current = r)}
-            layout={{
-              default: ["1 2 3", "4 5 6", "7 8 9", "0 , {bksp}"],
-            }}
-            display={{
-              "{bksp}": "⌫",
-            }}
-            inputName="mainInput"
-            onChange={handleChange}
-            initialValue={inputValue}
-          />
+          
+          {/* Estilos inline para o teclado */}
+          <Box sx={{ mt: 2 }}>
+            <style>
+              {`
+                .hg-theme-default {
+                  background-color: #f5f5f5 !important;
+                  border-radius: 4px !important;
+                  padding: 8px !important;
+                  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+                }
+                .hg-button {
+                  background-color: #ffffff !important;
+                  border: 1px solid #ccc !important;
+                  border-radius: 4px !important;
+                  color: #333 !important;
+                  cursor: pointer !important;
+                  display: inline-block !important;
+                  font-size: 16px !important;
+                  font-weight: 500 !important;
+                  height: 50px !important;
+                  line-height: 50px !important;
+                  margin: 4px !important;
+                  min-width: 50px !important;
+                  padding: 0 !important;
+                  text-align: center !important;
+                  user-select: none !important;
+                  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+                  transition: all 0.2s ease !important;
+                }
+                .hg-button:hover {
+                  background-color: #e0e0e0 !important;
+                  transform: translateY(-1px) !important;
+                }
+                .hg-button:active {
+                  background-color: #d0d0d0 !important;
+                  transform: scale(0.98) !important;
+                }
+                .hg-row {
+                  display: flex !important;
+                  justify-content: center !important;
+                  margin-bottom: 4px !important;
+                }
+              `}
+            </style>
+            <Keyboard
+              keyboardRef={(r) => (keyboardRef.current = r)}
+              layout={{
+                default: ["1 2 3", "4 5 6", "7 8 9", "0 , {bksp}"],
+              }}
+              display={{
+                "{bksp}": "⌫",
+              }}
+              inputName="mainInput"
+              onChange={handleChange}
+              initialValue={inputValue}
+            />
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={sendData} color="success">

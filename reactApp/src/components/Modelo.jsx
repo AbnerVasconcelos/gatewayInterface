@@ -1,5 +1,5 @@
 // ModelViewerWrapper.jsx
-import React, { useRef, useEffect, useState, useMemo, Suspense } from "react";
+import React, { useRef, useEffect, useMemo, Suspense } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useGLTF, OrbitControls, Text } from "@react-three/drei";
 import { Color } from "three";
@@ -17,6 +17,40 @@ const getNormalizedFillLevel = (socketValue, maxValue, initialFill, maxFill) => 
   }
   return initialFill;
 };
+
+/* ===== Componente Label ===== */
+const Label = ({ color = "white", valueColor = "green", tag, value, position, unit = "%" }) => (
+  <group>
+    <Text
+      color={color}
+      fontSize={0.4}
+      fontWeight="bold"
+      position={position}
+      anchorX="center"
+      anchorY="middle"
+      outlineWidth={0.02}
+      outlineColor="rgba(0,0,0,0.8)"
+      material-toneMapped={false}
+      rotation={[0.5, 0, 0]}
+    >
+      {tag}
+    </Text>
+    <Text
+      color={valueColor}
+      fontSize={0.4}
+      fontWeight="bold"
+      position={[position[0], position[1] - 0.6, position[2]]}
+      anchorX="center"
+      anchorY="middle"
+      outlineWidth={0.02}
+      outlineColor="rgba(0,0,0,0.8)"
+      material-toneMapped={false}
+      rotation={[0.5, 0, 0]}
+    >
+      {`${value.toFixed(2)} ${unit}`}
+    </Text>
+  </group>
+);
 
 /* ===== Model ===== */
 const Model = ({
@@ -62,39 +96,25 @@ const Model = ({
   const { scene, materials, cameras } = useGLTF(path);
   const { gl, set } = useThree();
 
-  /* --- Labels (receitas) --- */
-  const [receitas, setReceitas] = useState({
-    receitaA: { tag: socketTagA || "A", value: ensureNumber(socketReceitaA) },
-    receitaB: { tag: socketTagB || "B", value: ensureNumber(socketReceitaB) },
-    receitaC: { tag: socketTagC || "C", value: ensureNumber(socketReceitaC) },
-    receitaD: { tag: socketTagD || "D", value: ensureNumber(socketReceitaD) },
-    balancaA: { tag: socketTagBalanca || "Balança", value: ensureNumber(socketReceitaBalancaA) },
-    mixer: { tag: socketTagMisturador || "Misturador", value: ensureNumber(socketReceitaMisturador) },
-  });
-
-  useEffect(() => {
-    const next = {
+  /* --- Labels com useMemo --- */
+  const receitas = useMemo(
+    () => ({
       receitaA: { tag: socketTagA || "A", value: ensureNumber(socketReceitaA) },
       receitaB: { tag: socketTagB || "B", value: ensureNumber(socketReceitaB) },
       receitaC: { tag: socketTagC || "C", value: ensureNumber(socketReceitaC) },
       receitaD: { tag: socketTagD || "D", value: ensureNumber(socketReceitaD) },
       balancaA: { tag: socketTagBalanca || "Balança", value: ensureNumber(socketReceitaBalancaA) },
       mixer: { tag: socketTagMisturador || "Misturador", value: ensureNumber(socketReceitaMisturador) },
-    };
-    setReceitas((prev) => {
-      const same = Object.keys(next).every(
-        (k) => prev[k]?.tag === next[k].tag && prev[k]?.value === next[k].value
-      );
-      return same ? prev : next;
-    });
-  }, [
-    socketTagA, socketReceitaA,
-    socketTagB, socketReceitaB,
-    socketTagC, socketReceitaC,
-    socketTagD, socketReceitaD,
-    socketTagBalanca, socketReceitaBalancaA,
-    socketTagMisturador, socketReceitaMisturador,
-  ]);
+    }),
+    [
+      socketTagA, socketReceitaA,
+      socketTagB, socketReceitaB,
+      socketTagC, socketReceitaC,
+      socketTagD, socketReceitaD,
+      socketTagBalanca, socketReceitaBalancaA,
+      socketTagMisturador, socketReceitaMisturador,
+    ]
+  );
 
   /* --- Setup único de câmera e shaders --- */
   const setupDone = useRef(false);
@@ -102,7 +122,7 @@ const Model = ({
     if (setupDone.current) return;
     if (!materials || !cameras) return;
 
-    // Câmera: aplica 1x
+    // Configuração de câmera
     if (cameras.length > 0 && modelParams?.camera) {
       const gltfCamera = cameras[0];
       const { position, rotation, fov, near, far } = modelParams.camera;
@@ -124,31 +144,13 @@ const Model = ({
         shader.uniforms.mixFactor = { value: modelParams.mixFactor };
         shader.uniforms.time = { value: 0 };
         shader.uniforms.activateBlink = { value: 0 };
-
-        shader.vertexShader = `varying vec3 vWorldPosition;
-${shader.vertexShader}`.replace(
+        shader.vertexShader = `varying vec3 vWorldPosition;\n${shader.vertexShader}`.replace(
           "#include <begin_vertex>",
-          `#include <begin_vertex>
-           vec4 worldPosition = modelMatrix * vec4(position, 1.0);
-           vWorldPosition = worldPosition.xyz;`
+          `#include <begin_vertex>\nvec4 worldPosition = modelMatrix * vec4(position, 1.0);\nvWorldPosition = worldPosition.xyz;`
         );
-
-        shader.fragmentShader = `uniform float fillLevel;
-uniform vec3 fillColor;
-uniform float mixFactor;
-uniform float time;
-uniform float activateBlink;
-varying vec3 vWorldPosition;
-${shader.fragmentShader}`.replace(
+        shader.fragmentShader = `uniform float fillLevel;\nuniform vec3 fillColor;\nuniform float mixFactor;\nuniform float time;\nuniform float activateBlink;\nvarying vec3 vWorldPosition;\n${shader.fragmentShader}`.replace(
           "#include <dithering_fragment>",
-          `#include <dithering_fragment>
-           if(vWorldPosition.y < fillLevel) {
-             gl_FragColor.rgb = mix(gl_FragColor.rgb, fillColor, mixFactor);
-           }
-           if(activateBlink > 0.5) {
-             float blink = abs(sin(time * 5.0));
-             gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(1.0, 0.0, 0.0), blink);
-           }`
+          `#include <dithering_fragment>\nif(vWorldPosition.y < fillLevel){gl_FragColor.rgb = mix(gl_FragColor.rgb, fillColor, mixFactor);} if(activateBlink > 0.5){float blink = abs(sin(time * 5.0)); gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(1.0,0.0,0.0), blink);}`
         );
         mat.userData.shader = shader;
       };
@@ -161,25 +163,13 @@ ${shader.fragmentShader}`.replace(
         shader.uniforms.fillLevel = { value: 0 };
         shader.uniforms.fillColor = { value: new Color(colorHex) };
         shader.uniforms.mixFactor = { value: modelParams.mixFactor };
-
-        shader.vertexShader = `varying vec3 vWorldPosition;
-${shader.vertexShader}`.replace(
+        shader.vertexShader = `varying vec3 vWorldPosition;\n${shader.vertexShader}`.replace(
           "#include <begin_vertex>",
-          `#include <begin_vertex>
-           vec4 worldPosition = modelMatrix * vec4(position, 1.0);
-           vWorldPosition = worldPosition.xyz;`
+          `#include <begin_vertex>\nvec4 worldPosition = modelMatrix * vec4(position, 1.0);\nvWorldPosition = worldPosition.xyz;`
         );
-
-        shader.fragmentShader = `uniform float fillLevel;
-uniform vec3 fillColor;
-uniform float mixFactor;
-varying vec3 vWorldPosition;
-${shader.fragmentShader}`.replace(
+        shader.fragmentShader = `uniform float fillLevel;\nuniform vec3 fillColor;\nuniform float mixFactor;\nvarying vec3 vWorldPosition;\n${shader.fragmentShader}`.replace(
           "#include <dithering_fragment>",
-          `#include <dithering_fragment>
-           if(vWorldPosition.y < fillLevel) {
-             gl_FragColor.rgb = mix(gl_FragColor.rgb, fillColor, mixFactor);
-           }`
+          `#include <dithering_fragment>\nif(vWorldPosition.y < fillLevel){gl_FragColor.rgb = mix(gl_FragColor.rgb, fillColor, mixFactor);}`
         );
         mat.userData.shader = shader;
       };
@@ -191,139 +181,90 @@ ${shader.fragmentShader}`.replace(
       mat.onBeforeCompile = (shader) => {
         shader.uniforms.time = { value: 0 };
         shader.uniforms.activateBlink = { value: 0 };
-        shader.fragmentShader = `uniform float time;
-uniform float activateBlink;
-${shader.fragmentShader}`.replace(
+        shader.fragmentShader = `uniform float time;\nuniform float activateBlink;\n${shader.fragmentShader}`.replace(
           "#include <dithering_fragment>",
-          `#include <dithering_fragment>
-           if(activateBlink > 0.5) {
-             float blink = abs(sin(time * 5.0));
-             gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(${blinkColor[0]}, ${blinkColor[1]}, ${blinkColor[2]}), blink);
-           }`
+          `#include <dithering_fragment>\nif(activateBlink > 0.5){float blink = abs(sin(time * 5.0)); gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(${blinkColor.join(",")}), blink);}`
         );
         mat.userData.shader = shader;
       };
       mat.needsUpdate = true;
     };
 
-    // Funis
+    // Aplicação
     setFunnelShader(materials.FunilA);
     setFunnelShader(materials.FunilB);
     setFunnelShader(materials.FunilC);
     setFunnelShader(materials.FunilD);
 
-    // Balança / Misturador
     setSimpleFillShader(materials.BalacaA, colorBatch);
     setSimpleFillShader(materials.Misturador, colorMisturador);
 
-    // Sensores (blink vermelho)
     setBlinkShader(materials.SensorA, [1, 0, 0]);
     setBlinkShader(materials.SensorB, [1, 0, 0]);
     setBlinkShader(materials.SensorC, [1, 0, 0]);
     setBlinkShader(materials.SensorD, [1, 0, 0]);
 
-    // Vácuos (blink verde)
     setBlinkShader(materials.VacuoA, [0, 1, 0]);
     setBlinkShader(materials.VacuoB, [0, 1, 0]);
     setBlinkShader(materials.VacuoC, [0, 1, 0]);
     setBlinkShader(materials.VacuoD, [0, 1, 0]);
 
     setupDone.current = true;
+
+    // cleanup -> evita leaks de GPU
+    return () => {
+      Object.values(materials).forEach((m) => m?.dispose && m.dispose());
+    };
   }, [materials, cameras, gl, set, modelParams.mixFactor, modelParams.camera, colorFunil, colorBatch, colorMisturador]);
+
+  /* --- Função genérica de update --- */
+  const updateShader = (mat, { fillValue, delta, blink }) => {
+    if (!mat?.userData.shader) return;
+    const sh = mat.userData.shader;
+    if (fillValue !== undefined) sh.uniforms.fillLevel.value = fillValue;
+    if (delta) sh.uniforms.time.value += delta;
+    if (blink !== undefined) sh.uniforms.activateBlink.value = blink ? 1.0 : 0.0;
+  };
 
   /* --- Atualizações por frame --- */
   useFrame((_, delta) => {
-    // Funis
-    if (materials.FunilA?.userData.shader) {
-      const sh = materials.FunilA.userData.shader;
-      sh.uniforms.fillLevel.value = getNormalizedFillLevel(
-        socketValueFunilA, maxValueFunil, modelParams.initialFillLevel, modelParams.maxFillLevel
-      );
-      sh.uniforms.time.value += delta;
-      sh.uniforms.activateBlink.value = socketFaltaMaterialA ? 1.0 : 0.0;
-    }
-    if (materials.FunilB?.userData.shader) {
-      const sh = materials.FunilB.userData.shader;
-      sh.uniforms.fillLevel.value = getNormalizedFillLevel(
-        socketValueFunilB, maxValueFunil, modelParams.initialFillLevel, modelParams.maxFillLevel
-      );
-      sh.uniforms.time.value += delta;
-      sh.uniforms.activateBlink.value = socketFaltaMaterialB ? 1.0 : 0.0;
-    }
-    if (materials.FunilC?.userData.shader) {
-      const sh = materials.FunilC.userData.shader;
-      sh.uniforms.fillLevel.value = getNormalizedFillLevel(
-        socketValueFunilC, maxValueFunil, modelParams.initialFillLevel, modelParams.maxFillLevel
-      );
-      sh.uniforms.time.value += delta;
-      sh.uniforms.activateBlink.value = socketFaltaMaterialC ? 1.0 : 0.0;
-    }
-    if (materials.FunilD?.userData.shader) {
-      const sh = materials.FunilD.userData.shader;
-      sh.uniforms.fillLevel.value = getNormalizedFillLevel(
-        socketValueFunilD, maxValueFunil, modelParams.initialFillLevel, modelParams.maxFillLevel
-      );
-      sh.uniforms.time.value += delta;
-      sh.uniforms.activateBlink.value = socketFaltaMaterialD ? 1.0 : 0.0;
-    }
+    updateShader(materials.FunilA, {
+      fillValue: getNormalizedFillLevel(socketValueFunilA, maxValueFunil, modelParams.initialFillLevel, modelParams.maxFillLevel),
+      delta,
+      blink: socketFaltaMaterialA,
+    });
+    updateShader(materials.FunilB, {
+      fillValue: getNormalizedFillLevel(socketValueFunilB, maxValueFunil, modelParams.initialFillLevel, modelParams.maxFillLevel),
+      delta,
+      blink: socketFaltaMaterialB,
+    });
+    updateShader(materials.FunilC, {
+      fillValue: getNormalizedFillLevel(socketValueFunilC, maxValueFunil, modelParams.initialFillLevel, modelParams.maxFillLevel),
+      delta,
+      blink: socketFaltaMaterialC,
+    });
+    updateShader(materials.FunilD, {
+      fillValue: getNormalizedFillLevel(socketValueFunilD, maxValueFunil, modelParams.initialFillLevel, modelParams.maxFillLevel),
+      delta,
+      blink: socketFaltaMaterialD,
+    });
 
-    // Balança / Misturador
-    if (materials.BalacaA?.userData.shader) {
-      const sh = materials.BalacaA.userData.shader;
-      sh.uniforms.fillLevel.value = getNormalizedFillLevel(
-        socketValueBalacaA, maxValueBalacaA, modelParams.initialFillLevel, modelParams.maxFillLevel
-      );
-    }
-    if (materials.Misturador?.userData.shader) {
-      const sh = materials.Misturador.userData.shader;
-      sh.uniforms.fillLevel.value = getNormalizedFillLevel(
-        socketValueMisturador, maxValueMisturador, modelParams.initialFillLevel, modelParams.maxFillLevel
-      );
-    }
+    updateShader(materials.BalacaA, {
+      fillValue: getNormalizedFillLevel(socketValueBalacaA, maxValueBalacaA, modelParams.initialFillLevel, modelParams.maxFillLevel),
+    });
+    updateShader(materials.Misturador, {
+      fillValue: getNormalizedFillLevel(socketValueMisturador, maxValueMisturador, modelParams.initialFillLevel, modelParams.maxFillLevel),
+    });
 
-    // Sensores
-    if (materials.SensorA?.userData.shader) {
-      const sh = materials.SensorA.userData.shader;
-      sh.uniforms.time.value += delta;
-      sh.uniforms.activateBlink.value = socketSensorA ? 1.0 : 0.0;
-    }
-    if (materials.SensorB?.userData.shader) {
-      const sh = materials.SensorB.userData.shader;
-      sh.uniforms.time.value += delta;
-      sh.uniforms.activateBlink.value = socketSensorB ? 1.0 : 0.0;
-    }
-    if (materials.SensorC?.userData.shader) {
-      const sh = materials.SensorC.userData.shader;
-      sh.uniforms.time.value += delta;
-      sh.uniforms.activateBlink.value = socketSensorC ? 1.0 : 0.0;
-    }
-    if (materials.SensorD?.userData.shader) {
-      const sh = materials.SensorD.userData.shader;
-      sh.uniforms.time.value += delta;
-      sh.uniforms.activateBlink.value = socketSensorD ? 1.0 : 0.0;
-    }
+    updateShader(materials.SensorA, { delta, blink: socketSensorA });
+    updateShader(materials.SensorB, { delta, blink: socketSensorB });
+    updateShader(materials.SensorC, { delta, blink: socketSensorC });
+    updateShader(materials.SensorD, { delta, blink: socketSensorD });
 
-    // Vácuos
-    if (materials.VacuoA?.userData.shader) {
-      const sh = materials.VacuoA.userData.shader;
-      sh.uniforms.time.value += delta;
-      sh.uniforms.activateBlink.value = socketVacuoA ? 1.0 : 0.0;
-    }
-    if (materials.VacuoB?.userData.shader) {
-      const sh = materials.VacuoB.userData.shader;
-      sh.uniforms.time.value += delta;
-      sh.uniforms.activateBlink.value = socketVacuoB ? 1.0 : 0.0;
-    }
-    if (materials.VacuoC?.userData.shader) {
-      const sh = materials.VacuoC.userData.shader;
-      sh.uniforms.time.value += delta;
-      sh.uniforms.activateBlink.value = socketVacuoC ? 1.0 : 0.0;
-    }
-    if (materials.VacuoD?.userData.shader) {
-      const sh = materials.VacuoD.userData.shader;
-      sh.uniforms.time.value += delta;
-      sh.uniforms.activateBlink.value = socketVacuoD ? 1.0 : 0.0;
-    }
+    updateShader(materials.VacuoA, { delta, blink: socketVacuoA });
+    updateShader(materials.VacuoB, { delta, blink: socketVacuoB });
+    updateShader(materials.VacuoC, { delta, blink: socketVacuoC });
+    updateShader(materials.VacuoD, { delta, blink: socketVacuoD });
   });
 
   /* --- Transform do modelo --- */
@@ -331,7 +272,7 @@ ${shader.fragmentShader}`.replace(
   scene.rotation.set(...modelParams.rotation);
   scene.scale.set(...modelParams.scale);
 
-  /* --- Posições das labels (sem duplicatas) --- */
+  /* --- Posições das labels --- */
   const labelPositions = {
     receitaA: [-1, 3.2, 2],
     receitaB: [1.1, 3.2, 2],
@@ -344,134 +285,38 @@ ${shader.fragmentShader}`.replace(
   return (
     <group>
       <primitive object={scene} />
-      {materials.FunilA && (
-        <group>
-          <Text color="white" fontSize={0.4} fontWeight="bold"
-            position={labelPositions.receitaA} anchorX="center" anchorY="middle"
-            outlineWidth={0.02} outlineColor="rgba(0,0,0,0.8)" material-toneMapped={false}
-            rotation={[0.5, 0, 0]}>
-            {receitas.receitaA.tag}
-          </Text>
-          <Text color="green" fontSize={0.4} fontWeight="bold"
-            position={[labelPositions.receitaA[0], labelPositions.receitaA[1] - 0.6, labelPositions.receitaA[2]]}
-            anchorX="center" anchorY="middle" outlineWidth={0.02} outlineColor="rgba(0,0,0,0.8)"
-            material-toneMapped={false} rotation={[0.5, 0, 0]}>
-            {`${receitas.receitaA.value.toFixed(2)} %`}
-          </Text>
-        </group>
-      )}
-
-      {materials.FunilB && (
-        <group>
-          <Text color="white" fontSize={0.4} fontWeight="bold"
-            position={labelPositions.receitaB} anchorX="center" anchorY="middle"
-            outlineWidth={0.02} outlineColor="rgba(0,0,0,0.8)" material-toneMapped={false}
-            rotation={[0.5, 0, 0]}>
-            {receitas.receitaB.tag}
-          </Text>
-          <Text color="green" fontSize={0.4} fontWeight="bold"
-            position={[labelPositions.receitaB[0], labelPositions.receitaB[1] - 0.6, labelPositions.receitaB[2]]}
-            anchorX="center" anchorY="middle" outlineWidth={0.02} outlineColor="rgba(0,0,0,0.8)"
-            material-toneMapped={false} rotation={[0.5, 0, 0]}>
-            {`${receitas.receitaB.value.toFixed(2)} %`}
-          </Text>
-        </group>
-      )}
-
-      {materials.FunilC && (
-        <group>
-          <Text color="white" fontSize={0.4} fontWeight="bold"
-            position={labelPositions.receitaC} anchorX="center" anchorY="middle"
-            outlineWidth={0.02} outlineColor="rgba(0,0,0,0.8)" material-toneMapped={false}
-            rotation={[0.5, 0, 0]}>
-            {receitas.receitaC.tag}
-          </Text>
-          <Text color="green" fontSize={0.4} fontWeight="bold"
-            position={[labelPositions.receitaC[0], labelPositions.receitaC[1] - 0.6, labelPositions.receitaC[2]]}
-            anchorX="center" anchorY="middle" outlineWidth={0.02} outlineColor="rgba(0,0,0,0.8)"
-            material-toneMapped={false} rotation={[0.5, 0, 0]}>
-            {`${receitas.receitaC.value.toFixed(2)} %`}
-          </Text>
-        </group>
-      )}
-
-      {materials.FunilD && (
-        <group>
-          <Text color="white" fontSize={0.4} fontWeight="bold"
-            position={labelPositions.receitaD} anchorX="center" anchorY="middle"
-            outlineWidth={0.02} outlineColor="rgba(0,0,0,0.8)" material-toneMapped={false}
-            rotation={[0.5, 0, 0]}>
-            {receitas.receitaD.tag}
-          </Text>
-          <Text color="green" fontSize={0.4} fontWeight="bold"
-            position={[labelPositions.receitaD[0], labelPositions.receitaD[1] - 0.6, labelPositions.receitaD[2]]}
-            anchorX="center" anchorY="middle" outlineWidth={0.02} outlineColor="rgba(0,0,0,0.8)"
-            material-toneMapped={false} rotation={[0.5, 0, 0]}>
-            {`${receitas.receitaD.value.toFixed(2)} %`}
-          </Text>
-        </group>
-      )}
-
-      {materials.BalacaA && (
-        <group>
-          <Text color="white" fontSize={0.4} fontWeight="bold"
-            position={labelPositions.balancaA} anchorX="center" anchorY="middle"
-            outlineWidth={0.02} outlineColor="rgba(0,0,0,0.8)" material-toneMapped={false}
-            rotation={[0.5, 0, 0]}>
-            {receitas.balancaA.tag}
-          </Text>
-          <Text color="green" fontSize={0.4} fontWeight="bold"
-            position={[labelPositions.balancaA[0], labelPositions.balancaA[1] - 0.6, labelPositions.balancaA[2]]}
-            anchorX="center" anchorY="middle" outlineWidth={0.02} outlineColor="rgba(0,0,0,0.8)"
-            material-toneMapped={false} rotation={[0.5, 0, 0]}>
-            {`${receitas.balancaA.value.toFixed(2)} Kg`}
-          </Text>
-        </group>
-      )}
-
-      {materials.Misturador && (
-        <group>
-          <Text color="white" fontSize={0.4} fontWeight="bold"
-            position={labelPositions.mixer} anchorX="center" anchorY="middle"
-            outlineWidth={0.02} outlineColor="rgba(0,0,0,0.8)" material-toneMapped={false}
-            rotation={[0.5, 0, 0]}>
-            {receitas.mixer.tag}
-          </Text>
-          <Text color="green" fontSize={0.4} fontWeight="bold"
-            position={[labelPositions.mixer[0], labelPositions.mixer[1] - 0.6, labelPositions.mixer[2]]}
-            anchorX="center" anchorY="middle" outlineWidth={0.02} outlineColor="rgba(0,0,0,0.8)"
-            material-toneMapped={false} rotation={[0.5, 0, 0]}>
-            {`${receitas.mixer.value.toFixed(2)} Kg`}
-          </Text>
-        </group>
-      )}
+      {materials.FunilA && <Label {...receitas.receitaA} position={labelPositions.receitaA} unit="%" />}
+      {materials.FunilB && <Label {...receitas.receitaB} position={labelPositions.receitaB} unit="%" />}
+      {materials.FunilC && <Label {...receitas.receitaC} position={labelPositions.receitaC} unit="%" />}
+      {materials.FunilD && <Label {...receitas.receitaD} position={labelPositions.receitaD} unit="%" />}
+      {materials.BalacaA && <Label {...receitas.balancaA} position={labelPositions.balancaA} unit="Kg" />}
+      {materials.Misturador && <Label {...receitas.mixer} position={labelPositions.mixer} unit="Kg" />}
     </group>
   );
 };
 
 /* ===== Viewer ===== */
-const ModelViewer = ({ modelPath, modelParams, ...otherProps }) => {
-  return (
-    <Canvas
-      camera={{
-        position: modelParams.camera.position,
-        fov: modelParams.camera.fov,
-        near: modelParams.camera.near,
-        far: modelParams.camera.far,
-      }}
-    >
-      <ambientLight intensity={modelParams.ambientLightIntensity} />
-      {modelParams.directionalLightPositions.map((pos, i) => (
-        <directionalLight key={i} position={pos} intensity={modelParams.directionalLightIntensity} />
-      ))}
-      <hemisphereLight skyColor="white" groundColor="gray" intensity={modelParams.hemisphereLightIntensity} />
-      <OrbitControls enableZoom={modelParams.enableZoom} />
-      <Model path={modelPath} modelParams={modelParams} {...otherProps} />
-    </Canvas>
-  );
-};
+const ModelViewer = ({ modelPath, modelParams, ...otherProps }) => (
+  <Canvas
+    camera={{
+      position: modelParams.camera.position,
+      fov: modelParams.camera.fov,
+      near: modelParams.camera.near,
+      far: modelParams.camera.far,
+    }}
+    frameloop="always"
+  >
+    <ambientLight intensity={modelParams.ambientLightIntensity} />
+    {modelParams.directionalLightPositions.map((pos, i) => (
+      <directionalLight key={i} position={pos} intensity={modelParams.directionalLightIntensity} />
+    ))}
+    <hemisphereLight skyColor="white" groundColor="gray" intensity={modelParams.hemisphereLightIntensity} />
+    <OrbitControls enableZoom={modelParams.enableZoom} />
+    <Model path={modelPath} modelParams={modelParams} {...otherProps} />
+  </Canvas>
+);
 
-/* ===== Wrapper (memoiza params) ===== */
+/* ===== Wrapper ===== */
 const ModelViewerWrapper = (props) => {
   const modelParams = useMemo(
     () => ({
