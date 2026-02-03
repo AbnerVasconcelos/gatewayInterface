@@ -326,7 +326,7 @@ const ModelViewerWrapper = (props) => {
       initialFillLevel: 0,
       fillSpeed: 0.1,
       maxFillLevel: 50,
-      mixFactor: 0.2,
+      mixFactor: 0.7,
       ambientLightIntensity: 0.5,
       directionalLightIntensity: 0.4,
       directionalLightPositions: [

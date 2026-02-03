@@ -22,6 +22,13 @@ const normalize = (v, [minO, maxO], [minT, maxT], fallback) => {
   return minT + ((v - minO) / (maxO - minO)) * (maxT - minT);
 };
 
+const formatDecimal = (v) => {
+  if (v == null || v === "N/A") return "N/A";
+  const num = Number(v);
+  if (isNaN(num)) return "N/A";
+  return (num / 100).toFixed(2).replace(".", ",");
+};
+
 const normalizeNivelA = (v) => normalize(v, [0, 20000], [-1.5, 2.9], -1.5);
 const normalizeNivelB = (v) => normalize(v, [0, 20000], [-1.6, 2.6], -1.6);
 const normalizeNivelC = (v) => normalize(v, [0, 20000], [1.9, 6.2], 1.9);
@@ -33,13 +40,14 @@ const Dashboard = () => {
   const theme = useTheme();
   const isNonMediumScreens = useMediaQuery("(min-width: 1000px)");
   const [messageReceived, setMessageReceived] = useState({});
+  const [producaoData, setProducaoData] = useState({});
 
   /* ---------------------------------------------------------------- */
   /* 3) Objetos de validação MEMOIZADOS                               */
   /* ---------------------------------------------------------------- */
   const valKgHora = useMemo(() => ({
     maxLength: 5,
-    pattern: /^\d{1,3}$/,
+    pattern: /^\d{1,2},\d{2}$/,
     errorMessage: "O formato deve ser 00,00!",
   }), []);
 
@@ -75,7 +83,7 @@ const Dashboard = () => {
       try {
         const parsed = JSON.parse(data);
         setMessageReceived(parsed);
-        if (parsed?.timestamp) console.log("read:", parsed.timestamp);
+        if (parsed?.timestamp); //console.log("read:", parsed.timestamp);
       } catch (e) {
         console.error("Erro ao processar dados do socket:", e);
       }
@@ -84,6 +92,19 @@ const Dashboard = () => {
     return () => socket.off("read", onRead);
   }, []);
 
+  useEffect(() => {
+    const onProducao = (data) => {
+      try {
+        const parsed = JSON.parse(data);
+        console.log("producao recebido:", parsed);
+        setProducaoData(parsed);
+      } catch (e) {
+        console.error("Erro ao processar dados de producao:", e);
+      }
+    };
+    socket.on("producao", onProducao);
+    return () => socket.off("producao", onProducao);
+  }, []);
   /* ---------------------------------------------------------------- */
   /* 5) Derivados MEMOIZADOS                                          */
   /* ---------------------------------------------------------------- */
@@ -135,8 +156,8 @@ const Dashboard = () => {
 
             <MemoInfoCard
               title="Produção"
-              programmedValue={prod?.kgHoraProgramado ?? "N/A"}
-              actualValue={prod?.kgHoraAtual ?? "N/A"}
+              programmedValue={formatDecimal(prod?.kgHoraProgramado) ?? "N/A"}
+              actualValue={producaoData?.kg_h ?? "N/A"}
               socketVariavel="kgHoraProgramado"
               unit="kg/h"
               inputValidation={valKgHora}
@@ -144,8 +165,8 @@ const Dashboard = () => {
 
             <MemoInfoCard
               title="Espessura"
-              programmedValue={prod?.espessuraProgramada ?? "N/A"}
-              actualValue={prod?.espessuraAtual ?? "N/A"}
+              programmedValue={formatDecimal(prod?.espessuraProgramada) ?? "N/A"}
+              actualValue={producaoData?.espessura_um ?? "N/A"}
               socketVariavel="espessuraProgramada"
               unit="μm"
               inputValidation={valEspessura}
@@ -153,17 +174,18 @@ const Dashboard = () => {
 
             <MemoInfoCard
               title="Grama/Metro"
-              programmedValue={prod?.gramaturaProgramada ?? "N/A"}
-              actualValue={prod?.gramaturaAtual ?? "N/A"}
+              programmedValue={formatDecimal(prod?.gramaturaProgramada) ?? "N/A"}
+              actualValue={producaoData?.gramatura_g_m2 ?? "N/A"}
+              socketVariavel="gramaturaProgramada"
               unit="g/m"
               inputValidation={valGramaMetro}
             />
 
             <MemoInfoCard
               title="Vel. Puxador"
-              programmedValue={prod?.puxadorProgramado ?? "N/A"}
+              programmedValue={formatDecimal(prod?.puxadorProgramado) ?? "N/A"}
               actualValue={pux?.puxadorFeedBackSpeed ?? "N/A"}
-              socketVariavel="puxadorProgramado"
+              socketVariavel="puxadorRefVelocidade"
               unit="m/min"
               inputValidation={valPuxador}
             />
@@ -189,16 +211,16 @@ const Dashboard = () => {
         >
           <MemoModelViewerWrapper
             modelPath="modelo.glb"
-            colorFunil="#00ff00"
+            colorFunil="#be74be"
             maxValueFunil={100}
             socketValueFunilA={funilA}
             socketValueFunilB={funilB}
             socketValueFunilC={funilC}
             socketValueFunilD={funilD}
-            colorBatch="#00FF00"
+            colorBatch="#be74be"
             maxValueBalacaA={100}
             socketValueBalacaA={balancaA}
-            colorMisturador="#00FF00"
+            colorMisturador="#be74be"
             maxValueMisturador={100}
             socketValueMisturador={mixer}
             socketFaltaMaterialA={coilsThree?.faltaMaterialA || false}
@@ -209,10 +231,10 @@ const Dashboard = () => {
             socketReceitaB={three?.percentualB || "000"}
             socketReceitaC={three?.percentualC || "000"}
             socketReceitaD={three?.percentualD || "000"}
-            socketTagA="A"
-            socketTagB="B"
-            socketTagC="C"
-            socketTagD="D"
+            socketTagA="Desligado"
+            socketTagB="Virgem"
+            socketTagC="Virgem"
+            socketTagD="Chiclete"
             socketSensorA={coilsThree?.capacitivoA || false}
             socketSensorB={coilsThree?.capacitivoB || false}
             socketSensorC={coilsThree?.capacitivoC || false}

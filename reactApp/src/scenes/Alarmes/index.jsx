@@ -121,16 +121,16 @@ const Alarmes = () => {
         >
           <ModelViewerWrapper 
             modelPath="modelo.glb"
-            colorFunil="#00FF00"
+            colorFunil="#be74be"
             maxValueFunil={100}
             socketValueFunilA={2.9} // minimo = -1.5 , máximo= 2.9
             socketValueFunilB={2.6}     // minimo = -1.6 , máximo= 2.6
             socketValueFunilC={6.2}     // minimo = 1.9 , máximo= 6.2
             socketValueFunilD={5}     // minimo = 0.7 , máximo= 5
-            colorBatch="#00FF00"
+            colorBatch="#be74be"
             maxValueBalacaA={100}
             socketValueBalacaA={-3.2}     // minimo = -4.8 , máximo= -3.2
-            colorMisturador="#00FF00"
+            colorMisturador="#be74be"
             maxValueMisturador={100}       // max =100 
             socketValueMisturador={-5.2} // minimo = -9.1 , máximo= -4.8 
            
