@@ -48,21 +48,12 @@ app.use(morgan("common"));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
-/* CONFIGURANDO CORS NO EXPRESS */
-const allowedOrigins = [
-  "http://localhost:3000",
-  "http://192.168.196.45:3000",
-  "http://192.168.196.100:3000",
-  "http://192.168.196.33:3000",
-
-
-];
-
+/* CONFIGURANDO CORS NO EXPRESS - ACEITA TODAS AS ORIGENS */
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: "*", // Aceita todas as origens
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    credentials: true,
+    credentials: false, // Mudado para false quando origin é "*"
   })
 );
 
@@ -85,19 +76,33 @@ const SOCKET_PORT = process.env.SOCKET_PORT || 5002;
 const socketServer = http.createServer();
 const io = new Server(socketServer, {
   cors: {
-    origin: allowedOrigins,
+    origin: "*", // Aceita todas as origens
     methods: ["GET", "POST"],
-    credentials: true,
+    credentials: false, // Mudado para false quando origin é "*"
   },
 });
 
 // REDIS SETUP
 const redisClient = createClient({
-  url: process.env.REDIS_URL || "redis://localhost:6379", // Redis local por padrão
+  url: process.env.REDIS_URL || "redis://192.168.196.45:6379",
+  socket: {
+    reconnectStrategy: (retries) => {
+      console.log(`Tentativa de reconexão ao Redis: ${retries}`);
+      if (retries > 20) {
+        console.error("Máximo de tentativas de reconexão ao Redis atingido");
+        return new Error("Máximo de tentativas atingido");
+      }
+      return Math.min(retries * 500, 10000); // Retry com backoff: 500ms, 1s, 1.5s... até 10s
+    }
+  }
 });
 
 redisClient.on("error", (err) => {
   console.error("Erro de conexão com Redis:", err);
+});
+
+redisClient.on("reconnecting", () => {
+  console.log("Reconectando ao Redis...");
 });
 
 redisClient.connect().then(() => {
@@ -141,9 +146,23 @@ io.on("connection", (socket) => {
 
   subscriber.subscribe("channel2", (message) => {
     console.log("*******************************************");
-    console.log(`Novo evento no Redis (channel2): ${message.toString()}`);
+    /*console.log(`Novo evento no Redis (channel2): ${message.toString()}`);*/
     io.emit("read", message.toString());
     console.log("Evento 'read' emitido para todos os sockets.");
+    console.log("*******************************************");
+  });
+})();
+
+(async () => {
+  const subscriber = redisClient.duplicate();
+  await subscriber.connect();
+  console.log("Redis subscriber conectado.");
+
+  subscriber.subscribe("producao", (message) => {
+    console.log("*******************************************");
+    console.log(`Novo evento no Redis (producao): ${message.toString()}`);
+    io.emit("producao", message.toString());
+    console.log("Evento 'producao' emitido para todos os sockets.");
     console.log("*******************************************");
   });
 })();

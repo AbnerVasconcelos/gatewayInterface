@@ -10,30 +10,30 @@ const RealTimeLineChart = ({
   legenda = false, 
   cor = '#ffbb00',
   transparencia = 0.1,
-  realTimeData // New prop for receiving real-time data
+  realTimeData,
+  minValue,
+  maxValue
 }) => {
-  const [data, setData] = useState([]);
   const containerRef = useRef(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const MAX_DATA_POINTS = 120;
-  const [fullDataArray, setFullDataArray] = useState(Array(MAX_DATA_POINTS).fill(null));
+  const [chartData, setChartData] = useState([]);
 
-  // Update data when new realTimeData is received
-  useEffect(() => {
-    if (realTimeData !== undefined && realTimeData !== null) {
-      setData(prev => {
-        const newData = [...prev, realTimeData].slice(-MAX_DATA_POINTS);
-        return newData;
-      });
-    }
-  }, [realTimeData]);
+  // Acumula dados via ref (sem causar re-render) e sincroniza com state via interval
+  const dataRef = useRef([]);
+  const realTimeDataRef = useRef(realTimeData);
+  realTimeDataRef.current = realTimeData;
 
-  // Update fullDataArray when data changes
   useEffect(() => {
-    const newFullArray = Array(MAX_DATA_POINTS).fill(null);
-    data.forEach((value, index) => newFullArray[index] = value);
-    setFullDataArray(newFullArray);
-  }, [data]);
+    const interval = setInterval(() => {
+      const val = realTimeDataRef.current;
+      if (val !== undefined && val !== null) {
+        dataRef.current = [...dataRef.current, Number(val)].slice(-MAX_DATA_POINTS);
+        setChartData([...dataRef.current]);
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Handle container resizing
   useEffect(() => {
@@ -52,7 +52,7 @@ const RealTimeLineChart = ({
     return () => resizeObserver.disconnect();
   }, []);
 
-  const xLabels = Array.from({ length: MAX_DATA_POINTS }, (_, i) => `#${i + 1}`);
+  const xLabels = chartData.map((_, i) => `#${i + 1}`);
 
   const hexToRGBA = (hex, alpha) => {
     let r = 255, g = 215, b = 0;
@@ -78,14 +78,14 @@ const RealTimeLineChart = ({
         <LineChart
           height={containerSize.height || height}
           width={containerSize.width || 400}
-          series={[{ 
-            data: fullDataArray, 
+          series={[{
+            data: chartData,
             area: true,
             showMark: false,
-            connectNulls: false,
             color: cor,
             areaStyle: { fill: colorWithTransparency },
           }]}
+          skipAnimation
           xAxis={[{ 
             scaleType: 'point', 
             data: xLabels,
@@ -95,6 +95,8 @@ const RealTimeLineChart = ({
             tickSize: escala ? undefined : 0,
           }]}
           yAxis={[{
+            min: minValue,
+            max: maxValue,
             display: escala,
             tickLabelStyle: { display: escala ? 'block' : 'none' },
             axisLine: { display: escala },

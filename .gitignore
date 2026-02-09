@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+Server/server.log
+Server/server-error.log
+reactApp/react.log
+reactApp/react-error.log
+
+# PM2 generated folders (logs with wrong paths)
+Server/Server/
+reactApp/reactApp/
+
+# Database
+*.sqlite
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build (React build is needed for deployment, so not ignored)
+# reactApp/build/

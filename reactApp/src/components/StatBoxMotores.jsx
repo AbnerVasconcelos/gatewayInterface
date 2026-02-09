@@ -123,7 +123,7 @@ const StatBoxMotores = ({
             <DialogWrapper
               triggerComponent={
                 <Box sx={{ width: "80px", height: "40px" }}>
-                  <RealTimeLineChart realTimeData={value} height={60} width="110%" cor="#ffe766" transparencia={0.3} />
+                  <RealTimeLineChart realTimeData={value} height={60} width="110%" cor="#ffe766" transparencia={0.3} minValue={minValue} maxValue={maxValue} />
                 </Box>
               }
               title={dialogTitle}
@@ -155,7 +155,7 @@ const StatBoxMotores = ({
             gap: "0.5rem",
           }}
         >
-          {/*<StepperMotores onOff={true} autManual={false} orientation="vertical"/>*/}
+
           {/*<RealTimeLineChart height={50} width="50%"/>*/}
           <Divider sx={{ my: 1, backgroundColor: theme.palette.divider }} />
           <Box

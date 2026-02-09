@@ -270,7 +270,7 @@ const Dashboard = () => {
             textFalseOnOff="Desligado"
             textTrueControl="Controle de Produção"
             textFalseControl="Controle de Produção"
-            value={extr?.extrusoraFeedBackSpeed || "000"}
+            value={extr?.extrusoraFeedBackSpeed ?? 0}
             minValue={0}
             maxValue={1745}
             unit="Rpm"
@@ -293,10 +293,10 @@ const Dashboard = () => {
             textFalseOnOff="Desligado"
             textTrueControl="Controle de Espessura"
             textFalseControl="Controle de Espessura"
-            value={pux?.puxadorFeedBackSpeed || "000"}
+            value={pux?.puxadorFeedBackSpeed ?? 0}
             unit="m/min"
             minValue={0}
-            maxValue={120}
+            maxValue={80}
             ligado={coilsPux?.puxadorLigadoDesligado ?? false}
             onOff={coilsPux?.puxadorLigadoDesligado ?? false}
             autManual={coilsPux?.puxadorAutManEstado ?? false}
