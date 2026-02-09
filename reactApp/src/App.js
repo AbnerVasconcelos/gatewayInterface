@@ -46,7 +46,22 @@ function App() {
   }, [auth]);
 
   //######################## socket #############################################
-  // SocketProvider agora faz *bypass* com um fakeUser quando não há user real.
+  /**
+   * SocketProvider - Gerencia conexão Socket.IO com resiliência
+   *
+   * Estratégia de reconexão:
+   * 1. Socket.IO tenta reconectar automaticamente (config em socket.js)
+   * 2. Após 10 tentativas falhas, aguarda 30s e reinicia o ciclo
+   * 3. Reset preventivo a cada 30min para evitar memory leaks
+   *
+   * Eventos monitorados:
+   * - connect: conexão estabelecida
+   * - disconnect: desconexão (com motivo)
+   * - connect_error: erro ao conectar
+   * - reconnect: reconexão bem-sucedida
+   * - reconnect_attempt: tentativa de reconexão
+   * - reconnect_failed: todas tentativas falharam
+   */
   const SocketProvider = ({ children }) => {
     const MAX_BUFFER_SIZE = 10;
     const [dataBuffer, setDataBuffer] = useState([]);
@@ -54,17 +69,54 @@ function App() {
     useEffect(() => {
       // Usuário fake — usado apenas quando `user` for null (ou seja, não autenticado).
       const fakeUser = { email: "demo@teste.com", displayName: "Demo User" };
-
-      // Se o usuário ainda estiver undefined (carregando), não inicializamos o socket aqui.
-      // O App mostra SplashScreen enquanto loadingUser === true, então esse hook só rodará depois.
       const activeUser = user || fakeUser;
 
-      // Conecta e configura listeners
+      // Conecta ao servidor
       socket.connect();
 
+      // ========== Handlers de conexão ==========
       const handleConnect = () => {
-        console.log(`🔌 Conectado ao servidor Socket.io (emitindo usuário: ${activeUser.email})`);
+        console.log(`🔌 Conectado ao servidor Socket.io (usuário: ${activeUser.email})`);
         socket.emit("user", { email: activeUser.email });
+      };
+
+      const handleDisconnect = (reason) => {
+        console.warn(`⚠️ Socket desconectado. Motivo: ${reason}`);
+        // Motivos possíveis:
+        // - "io server disconnect": servidor forçou desconexão
+        // - "io client disconnect": cliente chamou socket.disconnect()
+        // - "ping timeout": servidor não respondeu ao ping
+        // - "transport close": conexão perdida
+        // - "transport error": erro no transporte
+
+        // Se o servidor forçou, precisamos reconectar manualmente
+        if (reason === "io server disconnect") {
+          console.log("🔄 Servidor forçou desconexão. Reconectando...");
+          socket.connect();
+        }
+        // Outros motivos: Socket.IO reconecta automaticamente
+      };
+
+      const handleConnectError = (error) => {
+        console.error(`❌ Erro de conexão Socket.io: ${error.message}`);
+      };
+
+      const handleReconnect = (attemptNumber) => {
+        console.log(`🔄 Reconectado ao Socket.io após ${attemptNumber} tentativa(s)`);
+        socket.emit("user", { email: activeUser.email });
+      };
+
+      const handleReconnectAttempt = (attemptNumber) => {
+        console.log(`🔄 Tentativa de reconexão #${attemptNumber}...`);
+      };
+
+      const handleReconnectFailed = () => {
+        console.error("❌ Falha ao reconectar após todas tentativas. Tentando novamente em 30s...");
+        // Aguarda 30s e tenta reconectar novamente
+        setTimeout(() => {
+          console.log("🔄 Reiniciando tentativas de conexão...");
+          socket.connect();
+        }, 30000);
       };
 
       const handleDataReceived = (data) => {
@@ -75,24 +127,36 @@ function App() {
         });
       };
 
+      // ========== Registra listeners ==========
       socket.on("connect", handleConnect);
+      socket.on("disconnect", handleDisconnect);
+      socket.on("connect_error", handleConnectError);
+      socket.on("reconnect", handleReconnect);
+      socket.on("reconnect_attempt", handleReconnectAttempt);
+      socket.on("reconnect_failed", handleReconnectFailed);
       socket.on("data", handleDataReceived);
 
-      // ♻️ Reset automático do socket a cada 30 min
+      // ♻️ Reset preventivo a cada 30 min (evita memory leaks em conexões longas)
       const resetInterval = setInterval(() => {
-        console.log("♻️ Resetando conexão do Socket.io...");
+        console.log("♻️ Reset preventivo do Socket.io (30min)...");
         socket.disconnect();
         setDataBuffer([]);
         socket.connect();
-      }, 30 * 60 * 1000); // 30 minutos
+      }, 30 * 60 * 1000);
 
+      // ========== Cleanup ==========
       return () => {
         clearInterval(resetInterval);
         socket.off("connect", handleConnect);
+        socket.off("disconnect", handleDisconnect);
+        socket.off("connect_error", handleConnectError);
+        socket.off("reconnect", handleReconnect);
+        socket.off("reconnect_attempt", handleReconnectAttempt);
+        socket.off("reconnect_failed", handleReconnectFailed);
         socket.off("data", handleDataReceived);
         socket.disconnect();
       };
-    }, [user]); // re-executa quando o `user` mudar (login/logout)
+    }, [user]);
 
     return children;
   };
